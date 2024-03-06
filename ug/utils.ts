@@ -6,9 +6,7 @@ import { CommandOrigin } from "bdsx/bds/commandorigin";
 import { CommandOutput } from "bdsx/bds/command";
 import { LogInfo, rawtext } from "..";
 
-let participants: string[] = [];
-
-export function startGame(game: Games, players: Player[], sec: number, title: string = "§aStarting in...") {
+export function startGame(game: Games, players: Player[], sec: number, title: string = "§aStarting in...", callback: (participants: string[]) => void) {
     players.forEach(pl => joinForm(pl, game));
     const countdownInterval = setInterval(() => {
         bedrockServer.executeCommand(`execute as @a run playsound random.click @s ~~~ 1 ${sec/10}`);
@@ -18,7 +16,7 @@ export function startGame(game: Games, players: Player[], sec: number, title: st
         if (sec <= 0) {
             clearInterval(countdownInterval);
             isGameRunning.game = game;
-            return participants;
+            callback(participants);
         };
     }, 1000);
 }
@@ -63,15 +61,40 @@ function addParticipant(pl: string) {
     }
     participants.push(pl);
     participants.forEach(pl1 => {
-        bedrockServer.executeCommand(`tellraw "${pl1}" ${rawtext(`§l§7Queue> §r${pl} §7joined the queue`)}`);
+        bedrockServer.executeCommand(`tellraw "${pl1}" ${rawtext(`§l§7Queue> §a+ §r${pl} §7joined the queue`)}`);
     });
-    bedrockServer.executeCommand(`tellraw "${pl}" ${rawtext(`§l§7Queue> §r§7you joined the queue`)}`);
+    bedrockServer.executeCommand(`tellraw "${pl}" ${rawtext(`§l§7Queue> §r§7you joined the queue. §oType §f/leavequeue §7to leave`)}`);
+}
+
+function removeParticipant(pl: string) {
+    if (isGameRunning) {
+        bedrockServer.executeCommand(`tellraw "${pl}" ${rawtext("A game is already running, so queue is empty (duh)", LogInfo.error)}`);
+        return;
+    }
+    if (participants.includes(pl)) {
+        participants.splice(participants.indexOf(pl), 1);
+    }
+    participants.forEach(pl1 => {
+        bedrockServer.executeCommand(`tellraw "${pl1}" ${rawtext(`§l§7Queue> §c- §r${pl} §7left the queue`)}`);
+    });
+    bedrockServer.executeCommand(`tellraw "${pl}" ${rawtext(`§l§7Queue> §r§7you left the queue.`)}`);
 }
 
 export function joinqueue(origin: CommandOrigin, output: CommandOutput) {
     const pl = origin.getEntity();
     if (pl !== null && pl.isPlayer()) {
         addParticipant(pl.getNameTag());
+        return;
+    } else {
+        output.error("Need 2 be player to execute");
+        return;
+    }
+}
+
+export function leavequeue(origin: CommandOrigin, output: CommandOutput) {
+    const pl = origin.getEntity();
+    if (pl !== null && pl.isPlayer()) {
+        removeParticipant(pl.getNameTag());
         return;
     } else {
         output.error("Need 2 be player to execute");
