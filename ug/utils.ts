@@ -6,19 +6,50 @@ import { CommandOrigin } from "bdsx/bds/commandorigin";
 import { CommandOutput } from "bdsx/bds/command";
 import { LogInfo, rawtext } from "..";
 
-export function startGame(game: Games, players: Player[], sec: number, title: string = "§aStarting in...", callback: (participants: string[]) => void) {
+let participants: string[] = []
+
+export function stopGame() {
+    isGameRunning.game = Games.none;
+    isGameRunning.isRunning = false;
+    participants = [];
+    bedrockServer.executeCommand("tag @a remove bedwars");
+}
+
+export async function startGame(game: Games, players: Player[], sec: number, title: string = "§aStarting in..."): Promise<string[] | null> {
+    if (players.length < 2) return null;
+    bedrockServer.executeCommand(`tellraw @a ${rawtext(`A ${game} game is starting in ${sec} seconds!`), LogInfo.info}`);
+    bedrockServer.executeCommand("playsound note.harp @a");
     players.forEach(pl => joinForm(pl, game));
-    const countdownInterval = setInterval(() => {
-        bedrockServer.executeCommand(`execute as @a run playsound random.click @s ~~~ 1 ${sec/10}`);
-        bedrockServer.executeCommand(`title @a title ${title}`);
-        sec <= 3 ? bedrockServer.executeCommand(`title @a subtitle §l§4${sec}`) : bedrockServer.executeCommand(`title @a subtitle §l§7${sec}`);
-        sec--;
-        if (sec <= 0) {
-            clearInterval(countdownInterval);
+    try {
+        const result = await countdown(15, title);
+        console.log(result);
+        if (result) {
+            if (participants.length < 2) {
+                bedrockServer.executeCommand(`tellraw @a ${rawtext("The bedwars game was §ccancelled§r. Not enough players!", LogInfo.info)}`);
+                return null;
+            }
             isGameRunning.game = game;
-            callback(participants);
-        };
-    }, 1000);
+            return participants;
+        }
+    } catch (error) {
+        console.log(error.message);
+    }
+    return null;
+}
+
+function countdown(sec: number, title: string): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+        const countdownInterval = setInterval(() => {
+            bedrockServer.executeCommand(`execute as @a run playsound random.click @s ~~~ 1 ${sec/10}`);
+            bedrockServer.executeCommand(`title @a title ${title}`);
+            sec <= 3 ? bedrockServer.executeCommand(`title @a subtitle §l§4${sec}`) : bedrockServer.executeCommand(`title @a subtitle §l§7${sec}`);
+            sec--;
+            if (sec <= 0) {
+                clearInterval(countdownInterval);
+                resolve(true);
+            };
+        }, 1000);
+    });
 }
 
 async function joinForm(pl: Player, game: string) {
@@ -52,7 +83,8 @@ async function joinForm(pl: Player, game: string) {
 }
 
 function addParticipant(pl: string) {
-    if (isGameRunning) {
+    console.log("recieved addParticipant " + pl);
+    if (isGameRunning.isRunning) {
         bedrockServer.executeCommand(`tellraw "${pl}" ${rawtext("A game is already running! (duh)", LogInfo.error)}`);
         return;
     } else if (participants.includes(pl)) {
@@ -67,7 +99,7 @@ function addParticipant(pl: string) {
 }
 
 function removeParticipant(pl: string) {
-    if (isGameRunning) {
+    if (isGameRunning.isRunning) {
         bedrockServer.executeCommand(`tellraw "${pl}" ${rawtext("A game is already running, so queue is empty (duh)", LogInfo.error)}`);
         return;
     }

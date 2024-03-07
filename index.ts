@@ -2,14 +2,17 @@ import { events } from "bdsx/event";
 import config = require("./config.json");
 import { serverProperties } from "bdsx/serverproperties";
 
-export const logPrefix = ``.reset + `[${config.pluginName.green}] `
+export const logPrefix = ``.reset + `[${config.pluginName.yellow}] `
 export enum LogInfo {
     default,
+    info,
     warn,
     error
 }
 export function rawtext(msg: string, type: LogInfo = LogInfo.default) {
     switch (type) {
+        case LogInfo.info:
+            return `{"rawtext":[{"text":"§a§l> §r${msg}"}]}`;
         case LogInfo.error:
             return `{"rawtext":[{"text":"§4§lERROR> §r§c${msg}"}]}`;
         case LogInfo.warn:
