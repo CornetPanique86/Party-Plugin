@@ -7,7 +7,6 @@ import { CommandOutput } from "bdsx/bds/command";
 import { LogInfo, rawtext } from "..";
 import { ItemStack } from "bdsx/bds/inventory";
 import { EnchantUtils, EnchantmentNames } from "bdsx/bds/enchants";
-import { CompoundTag, NBT } from "bdsx/bds/nbt";
 
 
 export function getPlayerByName(name: string): Player | null {
@@ -20,16 +19,15 @@ export function getPlayerByName(name: string): Player | null {
 
 type ItemDesc = {
     item: string,
-    amount: number,
-    data: number,
+    amount?: number,
+    data?: number,
     name?: string,
     lore?: string[],
     enchantment?: {
         enchant: EnchantmentNames,
         level: number,
         isUnsafe: boolean
-    },
-    color?: number
+    }
 }
 
 export function createCItemStack(item: ItemDesc) {
@@ -42,19 +40,6 @@ export function createCItemStack(item: ItemDesc) {
         EnchantUtils.applyEnchant(i, item.enchantment.enchant, item.enchantment.level, item.enchantment.isUnsafe);
     }
 
-    if (item.color !== undefined) {
-        const tag = i.save();
-        const nbt = NBT.allocate({
-            ...tag,
-            tag: {
-                ...tag.tag,
-                "customColor": NBT.int(item.color),
-                "minecraft:item_lock": NBT.byte(2),
-                "minecraft:keep_on_death": NBT.byte(1)
-            }
-        }) as CompoundTag;
-        i.load(nbt);
-    }
     return i;
 }
 
@@ -115,8 +100,7 @@ export function countdownActionbar(sec: number, pls: string[]): Promise<boolean>
         const countdownInterval = setInterval(() => {
             str = str.slice(0, -1);
             pls.forEach(pl => {
-                bedrockServer.executeCommand(`execute as "${pl}" run playsound random.click @s ~~~ 1 ${sec/10 + 0.2}`);
-                console.log(`execute as "${pl}" run playsound note.banjo @s ~~~ 1 ${sec/10 + 0.2}`);
+                bedrockServer.executeCommand(`execute as "${pl}" run playsound random.click @s ~~~ 1 ${sec/10 + 0.4}`);
                 sec <= 3 ? bedrockServer.executeCommand(`title "${pl}" actionbar §l${red + str}`)
                          : bedrockServer.executeCommand(`title "${pl}" actionbar §l${gray + str}`);
             });

@@ -3,6 +3,9 @@ import { command } from "bdsx/command";
 import { bedwarsstart } from "./bedwars";
 import { joinqueue, leavequeue } from "./utils";
 import { CommandOrigin } from "bdsx/bds/commandorigin";
+import { int32_t } from "bdsx/nativetype";
+import { Block } from "bdsx/bds/block";
+import { BlockPos } from "bdsx/bds/blockpos";
 
 // Bedwars
 command.register("bedwarsstart", "Hehehehe", /* Command permission */ CommandPermissionLevel.Operator)
@@ -42,19 +45,18 @@ command.register("leavequeue", "Leave the queue you're currently in", /* Command
 // test
 command.register("testp", "testing", /* Command permission */ CommandPermissionLevel.Operator).overload(
     (param, origin, output) => {
-        test(origin, output);
+        test(param, origin, output);
     },
     {
-        // action: command.enum("action.color", "color"),
-        // value: int32_t
+        action: command.enum("action.data", "data"),
+        value: int32_t
     },
 );
 
 
-function test(origin: CommandOrigin, output: CommandOutput) {
+function test(param: { action: string, value: number }, origin: CommandOrigin, output: CommandOutput) {
     const actor = origin.getEntity();
     if (!actor?.isPlayer()) return;
-    console.log(actor.getMainhandSlot().getName());
 
     // console.log(actor.getArmor(ArmorSlot.Head));
     // console.log("\nItemStack:\n" + actor.getArmor(ArmorSlot.Head).item);

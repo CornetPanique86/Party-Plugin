@@ -10,13 +10,15 @@ import { CompoundTag, NBT } from "bdsx/bds/nbt";
 import { ItemStack } from "bdsx/bds/inventory";
 import { events } from "bdsx/event";
 import { CANCEL } from "bdsx/common";
-import { EntityStopRidingEvent, PlayerInventoryChangeEvent, PlayerRespawnEvent } from "bdsx/event_impl/entityevent";
+import { PlayerInventoryChangeEvent, PlayerRespawnEvent } from "bdsx/event_impl/entityevent";
 import { Vec3 } from "bdsx/bds/blockpos";
 import { DimensionId } from "bdsx/bds/actor";
 import { BlockDestroyEvent } from "bdsx/event_impl/blockevent";
 
+const blockSource = bedrockServer.level.getDimension(DimensionId.Overworld)?.getBlockSource();
+
 // /bedwarsstart command
-export async function bedwarsstart(param: { option: string}, origin: CommandOrigin, output: CommandOutput) {
+export async function bedwarsstart(param: { option: string }, origin: CommandOrigin, output: CommandOutput) {
     // /bedwarsstart stop
     if (param.option === "stop") {
         stopGen();
@@ -35,6 +37,7 @@ export async function bedwarsstart(param: { option: string}, origin: CommandOrig
         if (participants !== null) setup(participants);
     } catch (err) {
         bedrockServer.executeCommand(`tellraw @a ${rawtext("Error while starting bedwars", LogInfo.error)}`);
+        console.log(err);
         return;
     }
 }
@@ -51,10 +54,11 @@ const teams: Teams = [{ bed: true, pls: [] },
                       { bed: true, pls: [] },
                       { bed: true, pls: [] }]
 const teamNames = ["§cRed", "§9Blue", "§2Green", "§6Yellow"]
-const teamColors = [-54000, 66000, 64000, -67000]
 
 function setup(pls: string[]) {
-    console.log(pls + "\n");
+    const teamColors = [-54000, 66000, 64000, -67000]
+
+    console.log("setup() participants:\n" + pls + "\n");
     bedrockServer.executeCommand("tag @a remove bedwars");
     let teamCounter = 0;
     pls.forEach(pl => {
@@ -67,15 +71,25 @@ function setup(pls: string[]) {
 
     // TP Teams
     teams[0].pls.forEach(pl => {
-        bedrockServer.executeCommand(`tp "${pl}" -1001 68 -1035`)
-        bedrockServer.executeCommand(`tp "${pl}" -1001 68 -1035`)
+        bedrockServer.executeCommand(`tp "${pl}" -1001 68 -1035`);
+        bedrockServer.executeCommand(`spawnpoint "${pl}" -1001 68 -1035`);
     });
-    teams[1].pls.forEach(pl => bedrockServer.executeCommand(`tp "${pl}" -1000 68 -965`));
-    teams[2].pls.forEach(pl => bedrockServer.executeCommand(`tp "${pl}" -966 68 -1000`));
-    teams[3].pls.forEach(pl => bedrockServer.executeCommand(`tp "${pl}" -1034 68 -1000`));
+    teams[1].pls.forEach(pl => {
+        bedrockServer.executeCommand(`tp "${pl}" -1000 68 -965`)
+        bedrockServer.executeCommand(`spawnpoint "${pl}" -1000 68 -965`)
+    });
+    teams[2].pls.forEach(pl => {
+        bedrockServer.executeCommand(`tp "${pl}" -966 68 -1000`)
+        bedrockServer.executeCommand(`spawnpoint "${pl}" -966 68 -1000`)
+    });
+    teams[3].pls.forEach(pl => {
+        bedrockServer.executeCommand(`tp "${pl}" -1034 68 -1000`)
+        bedrockServer.executeCommand(`spawnpoint "${pl}" -1034 68 -1000`)
+    });
 
     bedrockServer.executeCommand("clear @a[tag=bedwars]");
     bedrockServer.executeCommand("effect @a[tag=bedwars] clear");
+    bedrockServer.executeCommand("kill @e[type=item]");
     bedrockServer.executeCommand("inputpermission set @a[tag=bedwars] movement disabled");
 
     teams.forEach((team, index) => {
@@ -118,6 +132,11 @@ function setup(pls: string[]) {
 
     countdownActionbar(5, pls)
         .then(() => {
+            // Clear/reset map
+            bedrockServer.executeCommand("clone 116 20 112 116 20 113 -1000 68 -968"); // blue bed
+            bedrockServer.executeCommand("clone 115 20 111 114 20 111 -1031 68 -1000"); // yellow bed
+            bedrockServer.executeCommand("clone 116 20 110 116 20 109 -1001 68 -1032"); // red bed
+            bedrockServer.executeCommand("clone 117 20 111 118 20 111 -969 68 -1000"); // lime bed
             bedrockServer.executeCommand("inputpermission set @a[tag=bedwars] movement enabled");
             gen();
             startListeners();
@@ -143,13 +162,13 @@ function setup(pls: string[]) {
 
 // 1 iron/s ; 1 diamond/10s
 
-const iron_ingot = createCItemStack({ item: "minecraft:iron_ingot", amount: 1, data: 0 }),
-      emerald = createCItemStack({ item: "minecraft:emerald", amount: 1, data: 0 });
 let genInterval: NodeJS.Timeout;
+const iron_ingot = createCItemStack({ item: "minecraft:iron_ingot", amount: 1 }),
+      emerald = createCItemStack({ item: "minecraft:emerald", amount: 1 });
 
 function gen() {
-    const blockSource = bedrockServer.level.getDimension(DimensionId.Overworld)?.getBlockSource(),
-          ironSpawns = [[-1001, 68, -1038], [-1000, 68, -962], [-963, 68, -1000], [-1037, 68, -1000]],
+    console.log("gen() called");
+    const ironSpawns = [[-1001, 68, -1038], [-1000, 68, -962], [-963, 68, -1000], [-1037, 68, -1000]],
           emeraldSpawns = [[-1001, 70, -1008], [-1007, 70, -1000], [-993, 70, -1001], [-1000, 70, -993]];
 
     if (!blockSource) return;
@@ -161,7 +180,7 @@ function gen() {
                 blockSource,
                 iron_ingot,
                 Vec3.create(ironSpawns[i][0], ironSpawns[i][1], ironSpawns[i][2]),
-                1
+                0.25
             );
         }
         if (sec === 10) {
@@ -170,19 +189,19 @@ function gen() {
                     blockSource,
                     emerald,
                     Vec3.create(emeraldSpawns[i][0], emeraldSpawns[i][1], emeraldSpawns[i][2]),
-                    1
+                    0.25
                 );
             }
             sec = 0;
         }
         sec++;
     }, 1000);
+    console.log("after genInterval");
 }
 
 function stopGen() {
     clearInterval(genInterval);
 }
-
 
 
 function eliminate(pl: string) {
@@ -202,7 +221,7 @@ function end() {
 // -------------
 //   LISTENERS
 // -------------
-// if (!actor?.isPlayer()) return;
+
 const playerRespawnLis = (e: PlayerRespawnEvent) => {
     if (!e.player.hasTag("bedwars")) return;
     const pl = e.player.getNameTag();
@@ -218,7 +237,6 @@ const playerRespawnLis = (e: PlayerRespawnEvent) => {
 }
 const blockDestroyLis = (e: BlockDestroyEvent) => {
     // BEDS data: red=14 ; blue=11 ; green=5 ; yellow=4
-    const datas = [14, 11, 5, 4];
     if (!(e.player.hasTag("bedwars") && e.itemStack.getName() === "minecraft:bed")) return;
     let bed: number;
     // Check if bed color is of a team and give the correct team index
@@ -257,7 +275,57 @@ const blockDestroyLis = (e: BlockDestroyEvent) => {
 const playerInventoryChangeLis = (e: PlayerInventoryChangeEvent) => {
     if (!e.player.hasTag("bedwars")) return;
     const item = e.newItemStack;
+    const pl = e.player;
     console.log(item);
+    // Clear beds
+    if (item.getName() === "minecraft:bed") {
+        const inv = pl.getInventory();
+        const bed = createCItemStack({ item: "minecraft:bed", amount: 1 })
+        inv.removeResource(bed);
+        bed.destruct();
+        pl.sendInventory();
+        return;
+    }
+
+    // Replace armor
+    const armorNames = ["_chestplate", "_leggings", "_boots"];
+
+    if (item.getName() === "minecraft:diamond_chestplate") {
+        const armor: ItemStack[] = [];
+        for (let i = 0; i < 4; i++) {
+            const item = createCItemStack({
+                item: "minecraft:diamond" + armorNames[i],
+                amount: 1
+            });
+            armor.push(item);
+        }
+        armor.forEach((armorItem, index) => pl.setArmor(index+1, armorItem));
+
+        const inv = pl.getInventory();
+        const diamond_chestplate = createCItemStack({ item: "minecraft:diamond_chestplate" })
+        inv.removeResource(diamond_chestplate);
+        diamond_chestplate.destruct();
+        pl.sendInventory();
+        return;
+    }
+    if (item.getName() === "minecraft:iron_chestplate") {
+        const armor: ItemStack[] = [];
+        for (let i = 0; i < 4; i++) {
+            const item = createCItemStack({
+                item: "minecraft:iron" + armorNames[i],
+                amount: 1
+            });
+            armor.push(item);
+        }
+        armor.forEach((armorItem, index) => pl.setArmor(index+1, armorItem));
+
+        const inv = pl.getInventory();
+        const iron_chestplate = createCItemStack({ item: "minecraft:iron_chestplate" })
+        inv.removeResource(iron_chestplate);
+        iron_chestplate.destruct();
+        pl.sendInventory();
+        return;
+    }
 }
 
 
@@ -270,4 +338,6 @@ function startListeners() {
 
 events.serverClose.on(() => {
     stopGen();
+    iron_ingot.destruct();
+    emerald.destruct();
 })
