@@ -54,6 +54,7 @@ command.register("testp", "testing", /* Command permission */ CommandPermissionL
 function test(origin: CommandOrigin, output: CommandOutput) {
     const actor = origin.getEntity();
     if (!actor?.isPlayer()) return;
+    console.log(actor.getMainhandSlot().getName());
 
     // console.log(actor.getArmor(ArmorSlot.Head));
     // console.log("\nItemStack:\n" + actor.getArmor(ArmorSlot.Head).item);

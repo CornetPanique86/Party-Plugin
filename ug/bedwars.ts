@@ -10,17 +10,16 @@ import { CompoundTag, NBT } from "bdsx/bds/nbt";
 import { ItemStack } from "bdsx/bds/inventory";
 import { events } from "bdsx/event";
 import { CANCEL } from "bdsx/common";
-import { PlayerJumpEvent } from "bdsx/event_impl/entityevent";
+import { EntityStopRidingEvent, PlayerInventoryChangeEvent, PlayerRespawnEvent } from "bdsx/event_impl/entityevent";
 import { Vec3 } from "bdsx/bds/blockpos";
 import { DimensionId } from "bdsx/bds/actor";
-
-let genInterval: NodeJS.Timeout;
+import { BlockDestroyEvent } from "bdsx/event_impl/blockevent";
 
 // /bedwarsstart command
 export async function bedwarsstart(param: { option: string}, origin: CommandOrigin, output: CommandOutput) {
     // /bedwarsstart stop
     if (param.option === "stop") {
-        clearInterval(genInterval);
+        stopGen();
         stopGame();
         return;
     }
@@ -121,6 +120,7 @@ function setup(pls: string[]) {
         .then(() => {
             bedrockServer.executeCommand("inputpermission set @a[tag=bedwars] movement enabled");
             gen();
+            startListeners();
             return;
         })
         .catch(error => {
@@ -143,10 +143,12 @@ function setup(pls: string[]) {
 
 // 1 iron/s ; 1 diamond/10s
 
+const iron_ingot = createCItemStack({ item: "minecraft:iron_ingot", amount: 1, data: 0 }),
+      emerald = createCItemStack({ item: "minecraft:emerald", amount: 1, data: 0 });
+let genInterval: NodeJS.Timeout;
+
 function gen() {
     const blockSource = bedrockServer.level.getDimension(DimensionId.Overworld)?.getBlockSource(),
-          iron_ingot = createCItemStack({ item: "minecraft:iron_ingot", amount: 1, data: 0 }),
-          emerald = createCItemStack({ item: "minecraft:emerald", amount: 1, data: 0 }),
           ironSpawns = [[-1001, 68, -1038], [-1000, 68, -962], [-963, 68, -1000], [-1037, 68, -1000]],
           emeraldSpawns = [[-1001, 70, -1008], [-1007, 70, -1000], [-993, 70, -1001], [-1000, 70, -993]];
 
@@ -177,6 +179,95 @@ function gen() {
     }, 1000);
 }
 
-events.serverClose.on(() => {
+function stopGen() {
     clearInterval(genInterval);
+}
+
+
+
+function eliminate(pl: string) {
+    return;
+}
+function respawn(pl: string) {
+    return;
+}
+function bedBreak(pl: string, team: number) {
+    return;
+}
+
+function end() {
+    return;
+}
+
+// -------------
+//   LISTENERS
+// -------------
+// if (!actor?.isPlayer()) return;
+const playerRespawnLis = (e: PlayerRespawnEvent) => {
+    if (!e.player.hasTag("bedwars")) return;
+    const pl = e.player.getNameTag();
+
+    let isPlEliminated = false;
+    teams.forEach(team => {
+        if (team.pls.includes(pl) && !team.bed) {
+            isPlEliminated = true;
+            eliminate(pl);
+        }
+    });
+    if (!isPlEliminated) respawn(pl);
+}
+const blockDestroyLis = (e: BlockDestroyEvent) => {
+    // BEDS data: red=14 ; blue=11 ; green=5 ; yellow=4
+    const datas = [14, 11, 5, 4];
+    if (!(e.player.hasTag("bedwars") && e.itemStack.getName() === "minecraft:bed")) return;
+    let bed: number;
+    // Check if bed color is of a team and give the correct team index
+    switch (e.itemStack.getId()) {
+        case 14:
+            bed = 0; break;
+        case 11:
+            bed = 1; break;
+        case 5:
+            bed = 2; break;
+        case 4:
+            bed = 3; break;
+        default:
+            return;
+    }
+    const pl = e.player.getNameTag();
+    // Get player's team otherwise eliminate (just in case)
+    let plTeam = -1;
+    teams.forEach((team, index) => { if (team.pls.includes(pl)) plTeam = index });
+    if (plTeam === -1) {
+        eliminate(pl)
+        return
+    };
+
+    // If player breaks his own bed
+    if (bed === plTeam) {
+        bedrockServer.executeCommand(`tellraw "${pl}" ${rawtext("You can't break your own bed! (u stoopid or what?)", LogInfo.error)}`);
+        return CANCEL;
+    }
+
+    // Team's bed was broken
+    bedBreak(pl, bed);
+    return;
+}
+
+const playerInventoryChangeLis = (e: PlayerInventoryChangeEvent) => {
+    if (!e.player.hasTag("bedwars")) return;
+    const item = e.newItemStack;
+    console.log(item);
+}
+
+
+function startListeners() {
+    events.playerRespawn.on(playerRespawnLis);
+    events.blockDestroy.on(blockDestroyLis);
+    events.playerInventoryChange.on(playerInventoryChangeLis)
+}
+
+
+events.serverClose.on(() => {
+    stopGen();
 })

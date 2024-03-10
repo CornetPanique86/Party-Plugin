@@ -10,11 +10,12 @@ import { EnchantUtils, EnchantmentNames } from "bdsx/bds/enchants";
 import { CompoundTag, NBT } from "bdsx/bds/nbt";
 
 
-export function getPlayerByName(name: string) {
+export function getPlayerByName(name: string): Player | null {
     const plList = bedrockServer.level.getPlayers();
     for (let i = 0; i < plList.length; i++) {
         if (plList[i].getNameTag() === name) return plList[i]
     }
+    return null;
 }
 
 type ItemDesc = {
