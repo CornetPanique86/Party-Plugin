@@ -9,7 +9,7 @@ import { CompoundTag, NBT } from "bdsx/bds/nbt";
 import { ItemStack } from "bdsx/bds/inventory";
 import { events } from "bdsx/event";
 import { CANCEL } from "bdsx/common";
-import { PlayerInventoryChangeEvent, PlayerRespawnEvent } from "bdsx/event_impl/entityevent";
+import { PlayerAttackEvent, PlayerInventoryChangeEvent, PlayerRespawnEvent } from "bdsx/event_impl/entityevent";
 import { Vec3 } from "bdsx/bds/blockpos";
 import { DimensionId } from "bdsx/bds/actor";
 import { BlockDestroyEvent } from "bdsx/event_impl/blockevent";
@@ -366,12 +366,33 @@ const playerInventoryChangeLis = (e: PlayerInventoryChangeEvent) => {
         return;
     }
 }
+const playerAttackLis = (e: PlayerAttackEvent) => {
+    if (!e.player.hasTag("bedwars")) return;
+    const pl = e.player;
+    const victim = e.victim;
 
+    let plTeam = -1;
+    teams.forEach((team, index) => { if (team.pls.includes(pl.getNameTag())) plTeam = index });
+    let victimTeam = -1;
+    teams.forEach((team, index) => { if (team.pls.includes(victim.getNameTag())) victimTeam = index });
+    if (plTeam === -1 || victimTeam === -1) return;
+
+    // Player attacking his own team
+    if (plTeam === victimTeam) return CANCEL;
+
+    // Player attacking invulnerable
+    if (victim.hasTag("invulnerable")) {
+        pl.playSound("hit.anvil", undefined, 0.5);
+        pl.sendActionbar("§cPlayer is on cooldown")
+        return CANCEL;
+    }
+}
 
 function startListeners() {
     events.playerRespawn.on(playerRespawnLis);
     events.blockDestroy.on(blockDestroyLis);
     events.playerInventoryChange.on(playerInventoryChangeLis)
+    events.playerAttack.on(playerAttackLis)
 }
 
 
