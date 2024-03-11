@@ -213,49 +213,6 @@ const genObj = {
     }
 }
 
-// function gen() {
-
-//     console.log("gen() called");
-//     const blockSource = bedrockServer.level.getDimension(DimensionId.Overworld)?.getBlockSource();
-//     const iron_ingot = createCItemStack({ item: "minecraft:iron_ingot", amount: 1 }),
-//           emerald = createCItemStack({ item: "minecraft:emerald", amount: 1 });
-//     console.log("iron_ingot, emerald");
-//     const ironSpawns = [[-1001, 68, -1038], [-1000, 68, -962], [-963, 68, -1000], [-1037, 68, -1000]],
-//           emeraldSpawns = [[-1001, 70, -1008], [-1007, 70, -1000], [-993, 70, -1001], [-1000, 70, -993]];
-
-//     if (!blockSource) return;
-
-//     let sec = 1;
-//     console.log("before interval");
-//     const genInterval = setInterval(() => {
-//         for (let i = 0; i < ironSpawns.length; i++) {
-//             bedrockServer.level.getSpawner().spawnItem(
-//                 blockSource,
-//                 iron_ingot,
-//                 Vec3.create(ironSpawns[i][0], ironSpawns[i][1], ironSpawns[i][2]),
-//                 0.25
-//             );
-//         }
-//         if (sec === 10) {
-//             for (let i = 0; i < emeraldSpawns.length; i++) {
-//                 bedrockServer.level.getSpawner().spawnItem(
-//                     blockSource,
-//                     emerald,
-//                     Vec3.create(emeraldSpawns[i][0], emeraldSpawns[i][1], emeraldSpawns[i][2]),
-//                     0.25
-//                 );
-//             }
-//             sec = 0;
-//         }
-//         sec++;
-//     }, 1000);
-//     console.log("after genInterval");
-// }
-
-// function stopGen() {
-//     clearInterval(genInterval);
-// }
-
 
 function eliminate(pl: string) {
     return;
