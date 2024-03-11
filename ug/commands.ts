@@ -1,11 +1,13 @@
 import { CommandOutput, CommandPermissionLevel } from "bdsx/bds/command";
 import { command } from "bdsx/command";
 import { bedwarsstart } from "./bedwars";
-import { joinqueue, leavequeue } from "./utils";
+import { createCItemStack, joinqueue, leavequeue } from "./utils";
 import { CommandOrigin } from "bdsx/bds/commandorigin";
 import { int32_t } from "bdsx/nativetype";
 import { Block } from "bdsx/bds/block";
 import { BlockPos } from "bdsx/bds/blockpos";
+import { ArmorSlot } from "bdsx/bds/inventory";
+import { CompoundTag, NBT } from "bdsx/bds/nbt";
 
 // Bedwars
 command.register("bedwarsstart", "Hehehehe", /* Command permission */ CommandPermissionLevel.Operator)
@@ -58,21 +60,18 @@ function test(param: { action: string, value: number }, origin: CommandOrigin, o
     const actor = origin.getEntity();
     if (!actor?.isPlayer()) return;
 
-    // console.log(actor.getArmor(ArmorSlot.Head));
-    // console.log("\nItemStack:\n" + actor.getArmor(ArmorSlot.Head).item);
-    // let userData = actor.getArmor(ArmorSlot.Head).getUserData();
+    // let armorSlot = ArmorSlot.Head;
+    // switch (param.value) {
+    //     case 1:
+    //         armorSlot = ArmorSlot.Chest; break;
+    //     case 2:
+    //         armorSlot = ArmorSlot.Legs; break;
+    //     case 3:
+    //         armorSlot = ArmorSlot.Feet; break;
+    //     default:
+    //         break;
+    // }
+    // console.log(actor.getArmor(armorSlot));
+    // let userData = actor.getArmor(ArmorSlot.Chest).getUserData();
     // console.log("\n\n" + NBT.stringify(userData, 4));
-
-    // giveItem(actor, {
-    //     item: "minecraft:leather_helmet",
-    //     amount: 1,
-    //     data: 0,
-    //     name: "Yellow team's helmet",
-    //     lore: ["Win!"],
-    //     enchantment: {
-    //         enchant: EnchantmentNames.Unbreaking,
-    //         level: 5,
-    //         isUnsafe: true
-    //     }
-    // })
 }

@@ -59,7 +59,7 @@ export async function startGame(game: Games, players: Player[], sec: number, tit
     bedrockServer.executeCommand("playsound note.harp @a");
     players.forEach(pl => joinForm(pl, game));
     try {
-        const result = await countdownQueue(15, title);
+        const result = await countdownQueue(sec, title);
         if (result) {
             if (participants.length < 2) {
                 bedrockServer.executeCommand(`tellraw @a ${rawtext("The bedwars game was §ccancelled§r. Not enough players!", LogInfo.info)}`);
@@ -89,7 +89,7 @@ function countdownQueue(sec: number, title: string): Promise<boolean> {
     });
 }
 
-export function countdownActionbar(sec: number, pls: string[]): Promise<boolean> {
+export function countdownActionbar(sec: number, title: string, pls: string[], actionbar: boolean): Promise<boolean> {
     return new Promise((resolve, reject) => {
         const red = "§4",
               gray = "§7";
@@ -99,10 +99,15 @@ export function countdownActionbar(sec: number, pls: string[]): Promise<boolean>
         }
         const countdownInterval = setInterval(() => {
             str = str.slice(0, -1);
+            console.log("sec: " + sec);
             pls.forEach(pl => {
-                bedrockServer.executeCommand(`execute as "${pl}" run playsound random.click @s ~~~ 1 ${sec/10 + 0.4}`);
-                sec <= 3 ? bedrockServer.executeCommand(`title "${pl}" actionbar §l${red + str}`)
-                         : bedrockServer.executeCommand(`title "${pl}" actionbar §l${gray + str}`);
+                // slice -> remove long numbers like 0.60000000001
+                bedrockServer.executeCommand(`execute at "${pl}" run playsound note.banjo @p ~~~ 1 ${(sec/10 + 0.4).toString().slice(0, 3)}`);
+                console.log(`execute at "${pl}" run playsound note.banjo @p ~~~ 1 ${(sec/10 + 0.4).toString().slice(0, 3)}`);
+                if (!actionbar) bedrockServer.executeCommand(`title "${pl}" title ${title}`)
+                sec <= 3 ? bedrockServer.executeCommand(`title "${pl}" ${actionbar ? "actionbar" : "subtitle"} §l${red + str}`)
+                         : bedrockServer.executeCommand(`title "${pl}" ${actionbar ? "actionbar" : "subtitle"} §l${gray + str}`);
+                console.log(bedrockServer.executeCommand(`title "${pl}" ${actionbar ? "actionbar" : "subtitle"} §l${red + str}`));
             });
             sec--;
             if (sec <= -1) {
