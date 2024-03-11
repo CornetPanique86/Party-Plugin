@@ -60,18 +60,46 @@ function test(param: { action: string, value: number }, origin: CommandOrigin, o
     const actor = origin.getEntity();
     if (!actor?.isPlayer()) return;
 
-    // let armorSlot = ArmorSlot.Head;
-    // switch (param.value) {
-    //     case 1:
-    //         armorSlot = ArmorSlot.Chest; break;
-    //     case 2:
-    //         armorSlot = ArmorSlot.Legs; break;
-    //     case 3:
-    //         armorSlot = ArmorSlot.Feet; break;
-    //     default:
-    //         break;
-    // }
+    let armorSlot = ArmorSlot.Head;
+    let armor = "minecraft:diamond_helmet";
+    switch (param.value) {
+        case 1:
+            armorSlot = ArmorSlot.Chest;
+            armor = "minecraft:diamond_chestplate";
+            break;
+        case 2:
+            armorSlot = ArmorSlot.Legs;
+            armor = "minecraft:diamond_leggings";
+            break;
+        case 3:
+            armorSlot = ArmorSlot.Feet;
+            armor = "minecraft:diamond_boots";
+            break;
+        default:
+            break;
+    }
     // console.log(actor.getArmor(armorSlot));
     // let userData = actor.getArmor(ArmorSlot.Chest).getUserData();
     // console.log("\n\n" + NBT.stringify(userData, 4));
+
+    const item = createCItemStack({
+        item: armor,
+        amount: 1
+    });
+    const tag = item.save();
+    const nbt = NBT.allocate({
+        ...tag,
+        tag: {
+            ...tag.tag,
+            "Trim": {
+                "Material": "redstone",
+                "Pattern": "wayfinder"
+            },
+            "minecraft:item_lock": NBT.byte(2),
+            "minecraft:keep_on_death": NBT.byte(1)
+        }
+    }) as CompoundTag;
+    item.load(nbt);
+    actor.setArmor(param.value, item);
+    item.destruct();
 }

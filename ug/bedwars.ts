@@ -289,10 +289,7 @@ const playerInventoryChangeLis = (e: PlayerInventoryChangeEvent) => {
     console.log(item.getName());
     // Clear beds
     if (item.getName() === "minecraft:bed") {
-        const inv = pl.getInventory();
-        const bed = createCItemStack({ item: "minecraft:bed", amount: 1 })
-        inv.removeResource(bed);
-        bed.destruct();
+        item.destruct();
         pl.sendInventory();
         return;
     }
