@@ -50,6 +50,10 @@ export function stopGame() {
     isGameRunning.game = Games.none;
     isGameRunning.isRunning = false;
     participants = [];
+    bedrockServer.executeCommand("kill @e[type=item]");
+    bedrockServer.executeCommand("tp @a[tag=bedwars] 0 105 0");
+    bedrockServer.executeCommand("clear @a[tag=bedwars]");
+    bedrockServer.executeCommand("effect @a[tag=bedwars] clear");
     bedrockServer.executeCommand("tag @a remove bedwars");
 }
 
@@ -89,7 +93,7 @@ function countdownQueue(sec: number, title: string): Promise<boolean> {
     });
 }
 
-export function countdownActionbar(sec: number, title: string, pls: string[], actionbar: boolean): Promise<boolean> {
+export function countdownActionbar(sec: number, pls: string[], actionbar: boolean, title?: string): Promise<boolean> {
     return new Promise((resolve, reject) => {
         const red = "§4",
               gray = "§7";
@@ -99,15 +103,12 @@ export function countdownActionbar(sec: number, title: string, pls: string[], ac
         }
         const countdownInterval = setInterval(() => {
             str = str.slice(0, -1);
-            console.log("sec: " + sec);
             pls.forEach(pl => {
                 // slice -> remove long numbers like 0.60000000001
                 bedrockServer.executeCommand(`execute at "${pl}" run playsound note.banjo @p ~~~ 1 ${(sec/10 + 0.4).toString().slice(0, 3)}`);
-                console.log(`execute at "${pl}" run playsound note.banjo @p ~~~ 1 ${(sec/10 + 0.4).toString().slice(0, 3)}`);
-                if (!actionbar) bedrockServer.executeCommand(`title "${pl}" title ${title}`)
+                if (!actionbar) bedrockServer.executeCommand(`title "${pl}" title ${!title ? "§r" : title}`);
                 sec <= 3 ? bedrockServer.executeCommand(`title "${pl}" ${actionbar ? "actionbar" : "subtitle"} §l${red + str}`)
                          : bedrockServer.executeCommand(`title "${pl}" ${actionbar ? "actionbar" : "subtitle"} §l${gray + str}`);
-                console.log(bedrockServer.executeCommand(`title "${pl}" ${actionbar ? "actionbar" : "subtitle"} §l${red + str}`));
             });
             sec--;
             if (sec <= -1) {
