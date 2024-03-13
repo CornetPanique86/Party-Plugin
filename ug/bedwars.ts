@@ -228,7 +228,7 @@ function eliminate(pl: string) {
 function respawn(pl: Player) {
     const tpSpot = Vec3.create(-1000, 115, -1000);
     pl.teleport(tpSpot);
-    pl.addEffect(MobEffectInstance.create(14 /* invis ID */, 200, 255, false, false, false));
+    pl.addEffect(MobEffectInstance.create(14 /* invis ID */, 200, 255, false, true));
     const abilities = pl.getAbilities();
     abilities.setAbility(AbilitiesIndex.MayFly, true);
     abilities.setAbility(AbilitiesIndex.Flying, true);
@@ -236,20 +236,18 @@ function respawn(pl: Player) {
     abilities.setAbility(AbilitiesIndex.Invulnerable, true);
     abilities.setAbility(AbilitiesIndex.AttackPlayers, false);
     pl.syncAbilities();
+    const plName = pl.getNameTag();
 
     const specInterval = setInterval(() => {
         const players = bedrockServer.level.getPlayers();
         for (const player of players) {
-            if (!player.hasTag("bedwars")) break;
-            const plPos = pl.getPosition(),
-                  plaPos = player.getPosition();
-            if (Math.abs(plPos.x - plaPos.x) < 5 || Math.abs(plPos.y - plaPos.y) < 5 || Math.abs(plPos.z - plaPos.z) < 5 ) {
+            if (!player.hasTag("bedwars") || player.getNameTag() === plName) break;
+            if (pl.distanceTo(player.getPosition()) < 8) {
                 pl.teleport(tpSpot);
             }
         }
-    }, 500);
+    }, 1000);
 
-    const plName = pl.getNameTag();
     let plTeam = -1;
     teams.forEach((team, index) => { if (team.pls.includes(plName)) plTeam = index });
     if (plTeam === -1) return;
@@ -301,10 +299,11 @@ const playerRespawnLis = (e: PlayerRespawnEvent) => {
 }
 const blockDestroyLis = (e: BlockDestroyEvent) => {
     // BEDS data: red=14 ; blue=11 ; green=5 ; yellow=4
-    if (!(e.player.hasTag("bedwars") && e.itemStack.getName() === "minecraft:bed")) return;
+    const block = e.blockSource.getBlock(e.blockPos);
+    if (!(e.player.hasTag("bedwars") && block.getName() === "minecraft:bed")) return;
     let bed: number;
     // Check if bed color is of a team and give the correct team index
-    switch (e.itemStack.getId()) {
+    switch (block.getVariant()) {
         case 14:
             bed = 0; break;
         case 11:
@@ -320,6 +319,7 @@ const blockDestroyLis = (e: BlockDestroyEvent) => {
     // Get player's team otherwise eliminate (just in case)
     let plTeam = -1;
     teams.forEach((team, index) => { if (team.pls.includes(pl)) plTeam = index });
+    console.log(`team: ${plTeam}`);
     if (plTeam === -1) {
         eliminate(pl)
         return

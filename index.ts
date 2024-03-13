@@ -1,6 +1,7 @@
 import { events } from "bdsx/event";
 import config = require("./config.json");
 import { serverProperties } from "bdsx/serverproperties";
+import { bedrockServer } from "bdsx/launcher";
 
 export const logPrefix = ``.reset + `[${config.pluginName.yellow}] `
 export enum LogInfo {
@@ -23,6 +24,9 @@ export function rawtext(msg: string, type: LogInfo = LogInfo.default) {
     }
 }
 
+let rainbowOffset = 0;
+const rainbow = ["§c", "§6", "§e", "§a", "§9", "§b", "§d", "§g", "§5", "§2"];
+let motdInterval: NodeJS.Timeout;
 console.log(logPrefix + "Allocated");
 // before BDS launching
 
@@ -31,8 +35,17 @@ events.serverOpen.on(() => {
 
     if (serverProperties["level-name"] == "UG") require("./ug");
     if (serverProperties["level-name"] == "Party Lobby") require("./lobby");
+
+    motdInterval = setInterval(() => {
+        let i = rainbowOffset;
+        rainbowOffset = (rainbowOffset + 1) & rainbow.length;
+
+        const coloredName = config.name.replace(/./g, v => rainbow[i++ % rainbow.length] + v);
+        bedrockServer.serverInstance.setMotd(coloredName);
+    }, 5000);
 });
 
 events.serverClose.on(() => {
+    clearInterval(motdInterval);
     console.log(logPrefix + "Closed");
 });

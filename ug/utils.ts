@@ -59,6 +59,8 @@ export function stopGame() {
 
 export async function startGame(game: Games, players: Player[], sec: number, title: string = "§aStarting in..."): Promise<string[] | null> {
     if (players.length < 2) return null;
+    participants = [];
+    bedrockServer.executeCommand("title @a times 0 30 0");
     bedrockServer.executeCommand(`tellraw @a ${rawtext(`A ${game} game is starting in ${sec} seconds!`), LogInfo.info}`);
     bedrockServer.executeCommand("playsound note.harp @a");
     players.forEach(pl => joinForm(pl, game));
@@ -70,6 +72,7 @@ export async function startGame(game: Games, players: Player[], sec: number, tit
                 return null;
             }
             isGameRunning.game = game;
+            isGameRunning.isRunning = true;
             return participants;
         }
     } catch (error) {
