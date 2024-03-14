@@ -13,10 +13,38 @@ import { PlayerAttackEvent, PlayerInventoryChangeEvent, PlayerRespawnEvent } fro
 import { Vec3 } from "bdsx/bds/blockpos";
 import { DimensionId } from "bdsx/bds/actor";
 import { BlockDestroyEvent } from "bdsx/event_impl/blockevent";
-import { BlockSource } from "bdsx/bds/block";
+import { BlockActor, BlockActorType, BlockSource } from "bdsx/bds/block";
 import { Player } from "bdsx/bds/player";
 import { MobEffectIds, MobEffectInstance } from "bdsx/bds/effects";
 import { AbilitiesIndex } from "bdsx/bds/abilities";
+import { nativeClass, nativeField } from "bdsx/nativeclass";
+import { int32_t } from "bdsx/nativetype";
+
+
+enum BedColor {
+    White,
+    Orange,
+    Magenta,
+    LightBlue,
+    Yellow,
+    Lime,
+    Pink,
+    Gray,
+    LightGray,
+    Cyan,
+    Purple,
+    Blue,
+    Brown,
+    Green,
+    Red,
+    Black,
+}
+
+@nativeClass()
+class BedBlockActor extends BlockActor {
+    @nativeField(int32_t, 0xC8)
+    color: BedColor
+}
 
 
 // /bedwarsstart command
@@ -24,6 +52,7 @@ export async function bedwarsstart(param: { option: string }, origin: CommandOri
     // /bedwarsstart stop
     if (param.option === "stop") {
         genObj.stop();
+        gameIntervalObj.stop();
         stopGame();
         return;
     }
@@ -146,6 +175,7 @@ function setup(pls: string[]) {
             bedrockServer.executeCommand("clone 117 20 111 118 20 111 -969 68 -1000"); // lime bed
             bedrockServer.executeCommand("inputpermission set @a[tag=bedwars] movement enabled");
             genObj.gen();
+            gameIntervalObj.init();
             startListeners();
             return;
         })
@@ -220,10 +250,44 @@ const genObj = {
         this.emerald.destruct();
     }
 }
+const gameIntervalObj = {
+    init: function() {
+        this.interval = setInterval(() => this.intervalFunc(), 200);
+    },
+    intervalFunc: function() {
+        const players = bedrockServer.level.getPlayers();
+        for (const player of players) {
+            if (!player.hasTag("bedwars")) break;
+            if (player.getPosition().y < 0) {
+                player.kill();
+            }
+            const plName = player.getNameTag();
+            if (bedrockServer.executeCommand(`clear "${plName}" iron_chestplate`).result === 1) {
+                bedrockServer.executeCommand(`execute as "${plName}" run function bw_iron_armor`);
+                break;
+            }
+            if (bedrockServer.executeCommand(`clear "${plName}" diamond_chestplate`).result === 1) {
+                bedrockServer.executeCommand(`execute as "${plName}" run function bw_diamond_armor`);
+                break;
+            }
+        }
+    },
+    interval: 0 as unknown as NodeJS.Timeout,
+    stop: function(){
+        clearInterval(this.interval)
+    }
+}
 
 
-function eliminate(pl: string) {
-    return;
+function eliminate(pl: Player) {
+    const plName = pl.getNameTag();
+    teams.forEach(team => { if (team.pls.includes(plName)) team.pls.splice(team.pls.indexOf(plName), 1) });
+
+    bedrockServer.executeCommand("tellraw @a[tag=bedwars] " + rawtext(`${plName} §cwas eliminated. §l§2FINAL KILL!`));
+    bedrockServer.executeCommand(`clear "${plName}"`);
+    pl.removeTag("bedwars");
+    pl.teleport(Vec3.create(0, 106, 0));
+    isGameEnd();
 }
 function respawn(pl: Player) {
     const tpSpot = Vec3.create(-1000, 115, -1000);
@@ -265,10 +329,18 @@ function respawn(pl: Player) {
             // abilities.destruct();
         })
         .catch(err => console.log(err.message));
-    return;
 }
 function bedBreak(pl: string, team: number) {
-    return;
+    teams[team].bed = false;
+    bedrockServer.executeCommand("tellraw @a[tag=bedwars] " + rawtext(`§l${teamNames[team]} bed §r§7was broken by §r${pl}§7!`, LogInfo.info));
+    bedrockServer.executeCommand("execute at @a[tag=bedwars] run playsound mob.enderdragon.growl ~~~ 0.5");
+    let left = 0;
+    teams[team].pls.forEach(pl1 => { if (!getPlayerByName(pl1)) left++ });
+    if (left === teams[team].pls.length) {
+        teams[team].pls = [];
+        bedrockServer.executeCommand("tellraw @a[tag=bedwars] " + rawtext(`§l${teamNames[team]} team §r§7is §celiminated!`, LogInfo.info));
+        isGameEnd();
+    }
 }
 
 // Is the game done?
@@ -286,11 +358,11 @@ function end() {
 
 const playerRespawnLis = (e: PlayerRespawnEvent) => {
     if (!e.player.hasTag("bedwars")) return;
-    const pl = e.player.getNameTag();
+    const pl = e.player;
 
     let isPlEliminated = false;
     teams.forEach(team => {
-        if (team.pls.includes(pl) && !team.bed) {
+        if (team.pls.includes(pl.getNameTag()) && !team.bed) {
             isPlEliminated = true;
             eliminate(pl);
         }
@@ -299,18 +371,21 @@ const playerRespawnLis = (e: PlayerRespawnEvent) => {
 }
 const blockDestroyLis = (e: BlockDestroyEvent) => {
     // BEDS data: red=14 ; blue=11 ; green=5 ; yellow=4
-    const block = e.blockSource.getBlock(e.blockPos);
-    if (!(e.player.hasTag("bedwars") && block.getName() === "minecraft:bed")) return;
+    const block = e.blockSource.getBlockEntity(e.blockPos);
+    if (!block) return;
+    if (!(e.player.hasTag("bedwars") && block.getType() === BlockActorType.Bed)) return;
+
+    const bedActor = block.as(BedBlockActor);
     let bed: number;
     // Check if bed color is of a team and give the correct team index
-    switch (block.getVariant()) {
-        case 14:
+    switch (bedActor.color) {
+        case BedColor.Red:
             bed = 0; break;
-        case 11:
+        case BedColor.Blue:
             bed = 1; break;
-        case 5:
+        case BedColor.Green:
             bed = 2; break;
-        case 4:
+        case BedColor.Yellow:
             bed = 3; break;
         default:
             return;
@@ -319,9 +394,8 @@ const blockDestroyLis = (e: BlockDestroyEvent) => {
     // Get player's team otherwise eliminate (just in case)
     let plTeam = -1;
     teams.forEach((team, index) => { if (team.pls.includes(pl)) plTeam = index });
-    console.log(`team: ${plTeam}`);
     if (plTeam === -1) {
-        eliminate(pl)
+        eliminate(e.player)
         return
     };
 
@@ -360,4 +434,5 @@ function startListeners() {
 
 events.serverClose.on(() => {
     genObj.serverClose();
+    gameIntervalObj.stop();
 })

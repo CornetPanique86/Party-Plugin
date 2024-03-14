@@ -9,6 +9,7 @@ import { BlockPos } from "bdsx/bds/blockpos";
 import { ArmorSlot } from "bdsx/bds/inventory";
 import { CompoundTag, NBT } from "bdsx/bds/nbt";
 import { AbilitiesIndex } from "bdsx/bds/abilities";
+import { bedrockServer } from "bdsx/launcher";
 
 // Bedwars
 command.register("bedwarsstart", "Hehehehe", /* Command permission */ CommandPermissionLevel.Operator)
