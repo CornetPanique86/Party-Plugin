@@ -9,9 +9,9 @@ import { CompoundTag, NBT } from "bdsx/bds/nbt";
 import { ItemStack } from "bdsx/bds/inventory";
 import { events } from "bdsx/event";
 import { CANCEL } from "bdsx/common";
-import { PlayerAttackEvent, PlayerInventoryChangeEvent, PlayerRespawnEvent } from "bdsx/event_impl/entityevent";
+import { PlayerAttackEvent, PlayerInventoryChangeEvent, PlayerJoinEvent, PlayerLeftEvent, PlayerRespawnEvent } from "bdsx/event_impl/entityevent";
 import { Vec3 } from "bdsx/bds/blockpos";
-import { DimensionId } from "bdsx/bds/actor";
+import { ActorDamageCause, ActorDamageSource, DimensionId } from "bdsx/bds/actor";
 import { BlockDestroyEvent } from "bdsx/event_impl/blockevent";
 import { BlockActor, BlockActorType, BlockSource } from "bdsx/bds/block";
 import { Player } from "bdsx/bds/player";
@@ -51,9 +51,7 @@ class BedBlockActor extends BlockActor {
 export async function bedwarsstart(param: { option: string }, origin: CommandOrigin, output: CommandOutput) {
     // /bedwarsstart stop
     if (param.option === "stop") {
-        genObj.stop();
-        gameIntervalObj.stop();
-        stopGame();
+        stopBw();
         return;
     }
 
@@ -259,7 +257,7 @@ const gameIntervalObj = {
         for (const player of players) {
             if (!player.hasTag("bedwars")) break;
             if (player.getPosition().y < 0) {
-                player.kill();
+                player.die(ActorDamageSource.create(ActorDamageCause.Void));
             }
             const plName = player.getNameTag();
             if (bedrockServer.executeCommand(`clear "${plName}" iron_chestplate`).result === 1) {
@@ -281,7 +279,11 @@ const gameIntervalObj = {
 
 function eliminate(pl: Player) {
     const plName = pl.getNameTag();
-    teams.forEach(team => { if (team.pls.includes(plName)) team.pls.splice(team.pls.indexOf(plName), 1) });
+    teams.forEach((team, index) => { if (team.pls.includes(plName)) {
+        team.pls.splice(team.pls.indexOf(plName), 1);
+        if (team.pls.length === 0)
+            bedrockServer.executeCommand("tellraw @a[tag=bedwars] " + rawtext(`§l${teamNames[index]} team §r§7is §celiminated!`, LogInfo.info));
+    }});
 
     bedrockServer.executeCommand("tellraw @a[tag=bedwars] " + rawtext(`${plName} §cwas eliminated. §l§2FINAL KILL!`));
     bedrockServer.executeCommand(`clear "${plName}"`);
@@ -345,11 +347,59 @@ function bedBreak(pl: string, team: number) {
 
 // Is the game done?
 function isGameEnd() {
-    return;
+    let remainingTeams = 0;
+    teams.forEach(team => {
+        if (team.pls.length > 0) remainingTeams++;
+    });
+    if (remainingTeams > 1) return;
+    if (remainingTeams === 0) {
+        bedrockServer.executeCommand("tellraw @a " + rawtext("A bedwars game ended without winners (everyone left)...", LogInfo.error));
+        stopBw();
+        return;
+    }
+    // Get last team remaining
+    let lastTeam = -1;
+    teams.forEach((team, index) => {
+        if (team.pls.length > 0) lastTeam = index;
+    });
+    if (lastTeam === -1) return;
+
+    // If beds remaining, it means a team has a bed but no players = still alive
+    let beds = 0;
+    teams.forEach((team, index) => {
+        if (team.bed && index !== lastTeam) beds++;
+    });
+    if (beds > 0) return;
+
+    // isGameEnd = TRUE
+    end(lastTeam);
 }
 
-function end() {
-    return;
+function end(w: number) {
+    let winners: string[] = [];
+    let winnersStr = "";
+    teams[w].pls.forEach((winner, index) => {
+        winners.push(winner);
+        index === teams[w].pls.length - 1 ? winnersStr += winner : winnersStr += winner + ", ";
+    });
+    bedrockServer.executeCommand("tellraw @a[tag=bedwars] " + rawtext(`
+    §7===========\n
+        §l§aVICTORY\n
+    ${teamNames[w]}§r§7: §f${winnersStr}\n
+    §7===========\n
+    `));
+    for (const winner of winners) {
+        const pl = getPlayerByName(winner);
+        pl?.playSound("mob.pillager.celebrate");
+    }
+    bedrockServer.executeCommand("tellraw @a " + rawtext(`§a§l${winnersStr} §r§awon a game of Bedwars!`));
+    stopBw();
+}
+function stopBw() {
+    genObj.stop();
+    gameIntervalObj.stop();
+    stopListeners();
+    stopGame();
 }
 
 // -------------
@@ -425,10 +475,38 @@ const playerAttackLis = (e: PlayerAttackEvent) => {
     if (plTeam === victimTeam) return CANCEL;
 }
 
+const playerJoinLis = (e: PlayerJoinEvent) => {
+    if (!e.player.hasTag("bedwars")) return;
+    const pl = e.player;
+    const plName = pl.getNameTag();
+    pl.kill();
+    bedrockServer.executeCommand(`tellraw "${plName}" ${rawtext("§7You were killed do to reconnecting.")}`);
+    bedrockServer.executeCommand("tellraw @a[tag=bedwars] " + rawtext(`${plName} §7reconnected.`));
+}
+const playerLeftLis = (e: PlayerLeftEvent) => {
+    if (!e.player.hasTag("bedwars")) return;
+    const plName = e.player.getNameTag();
+    let plTeam = -1;
+    teams.forEach((team, index) => { if (team.pls.includes(plName)) plTeam = index });
+    if (plTeam === -1) return;
+    if (!teams[plTeam].bed) teams[plTeam].pls.splice(teams[plTeam].pls.indexOf(plName), 1);
+    isGameEnd();
+}
+
+
 function startListeners() {
     events.playerRespawn.on(playerRespawnLis);
     events.blockDestroy.on(blockDestroyLis);
     events.playerAttack.on(playerAttackLis);
+    events.playerJoin.on(playerJoinLis);
+    events.playerLeft.on(playerLeftLis);
+}
+function stopListeners() {
+    events.playerRespawn.remove(playerRespawnLis);
+    events.blockDestroy.remove(blockDestroyLis);
+    events.playerAttack.remove(playerAttackLis);
+    events.playerJoin.remove(playerJoinLis);
+    events.playerLeft.remove(playerLeftLis);
 }
 
 
