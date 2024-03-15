@@ -399,6 +399,10 @@ function stopBw() {
     genObj.stop();
     gameIntervalObj.stop();
     stopListeners();
+    teams.forEach(team => {
+        team.bed = true;
+        team.pls = [];
+    });
     stopGame();
 }
 

@@ -43,6 +43,52 @@ export function createCItemStack(item: ItemDesc) {
     return i;
 }
 
+const specIntervalObj = {
+    tpSpot: 0 as unknown as Vec3,
+    init: function() {
+        this.interval = setInterval(() => this.intervalFunc(), 1000);
+    },
+    intervalFunc: function() {
+        if (!tpSpot) return;
+        const players = bedrockServer.level.getPlayers();
+        for (const player of players) {
+            if (!player.hasTag("spectator")) break;
+            for (const player2 of players) {
+                if (player2.getNameTag() === player.getNameTag()) break;
+                if (player.distanceTo(player2.getPosition()) < 8) {
+                    player.teleport(tpSpot);
+                }
+            }
+        }
+    },
+    interval: 0 as unknown as NodeJS.Timeout,
+    stop: function(){
+        clearInterval(this.interval)
+    }
+}
+
+export function spectate(pl: Player, game: Games) {
+    let tpSpot: Vec3;
+    switch (game) {
+        case Games.bedwars:
+            tpSpot = Vec3.create(-1000, 115, -1000);
+            break;
+        case Games.hikabrain:
+            tpSpot = Vec3.create(0, 106, 0);
+            break;
+    }
+
+    pl.teleport(tpSpot);
+    pl.addTag("spectator");
+    pl.addEffect(MobEffectInstance.create(14 /* invis ID */, 200, 255, false, true));
+    const abilities = pl.getAbilities();
+    abilities.setAbility(AbilitiesIndex.MayFly, true);
+    abilities.setAbility(AbilitiesIndex.Flying, true);
+    abilities.setAbility(AbilitiesIndex.NoClip, true);
+    abilities.setAbility(AbilitiesIndex.Invulnerable, true);
+    abilities.setAbility(AbilitiesIndex.AttackPlayers, false);
+    pl.syncAbilities();
+}
 
 let participants: string[] = []
 

@@ -46,6 +46,14 @@ command.register("leavequeue", "Leave the queue you're currently in", /* Command
     { },
 );
 
+// Spectate currently running game
+command.register("spectate", "Spectate the current game", /* Command permission */ CommandPermissionLevel.Normal).overload(
+    (param, origin, output) => {
+        leavequeue(origin, output);
+    },
+    { },
+);
+
 // test
 command.register("testp", "testing", /* Command permission */ CommandPermissionLevel.Operator).overload(
     (param, origin, output) => {
