@@ -1,12 +1,16 @@
 import { Form } from "bdsx/bds/form";
 import { Player } from "bdsx/bds/player";
 import { bedrockServer } from "bdsx/launcher";
-import { Games, isGameRunning } from ".";
+import { Games, isGameRunning, lobbyCoords } from ".";
 import { CommandOrigin } from "bdsx/bds/commandorigin";
 import { CommandOutput } from "bdsx/bds/command";
 import { LogInfo, rawtext } from "..";
 import { ItemStack } from "bdsx/bds/inventory";
 import { EnchantUtils, EnchantmentNames } from "bdsx/bds/enchants";
+import { Vec3 } from "bdsx/bds/blockpos";
+import { MobEffectIds, MobEffectInstance } from "bdsx/bds/effects";
+import { AbilitiesIndex } from "bdsx/bds/abilities";
+import { events } from "bdsx/event";
 
 
 export function getPlayerByName(name: string): Player | null {
@@ -43,50 +47,66 @@ export function createCItemStack(item: ItemDesc) {
     return i;
 }
 
+let tpSpot: Vec3;
+
 const specIntervalObj = {
-    tpSpot: 0 as unknown as Vec3,
     init: function() {
+        console.log("called specIntervalObj.init()");
+        console.log("tpSpot: "+ tpSpot.x, tpSpot.y, tpSpot.z);
         this.interval = setInterval(() => this.intervalFunc(), 1000);
     },
     intervalFunc: function() {
-        if (!tpSpot) return;
         const players = bedrockServer.level.getPlayers();
-        for (const player of players) {
-            if (!player.hasTag("spectator")) break;
+        for (const specPl of players) {
+            if (!specPl.hasTag("spectator")) continue;
+            if (specPl.hasTag("bedwars")) {
+                specPl.removeTag("bedwars");
+                continue;
+            }
             for (const player2 of players) {
-                if (player2.getNameTag() === player.getNameTag()) break;
-                if (player.distanceTo(player2.getPosition()) < 8) {
-                    player.teleport(tpSpot);
+                if (player2.getNameTag() === specPl.getNameTag()) continue;
+                if (!(player2.hasTag("bedwars") || player2.hasTag("hikabrain"))) continue;
+                if (specPl.distanceTo(player2.getPosition()) < 8) {
+                    specPl.teleport(tpSpot);
+                    specPl.getAbilities().setAbility(AbilitiesIndex.Flying, true);
+                    specPl.syncAbilities();
                 }
             }
         }
     },
     interval: 0 as unknown as NodeJS.Timeout,
     stop: function(){
-        clearInterval(this.interval)
+        clearInterval(this.interval);
     }
 }
 
-export function spectate(pl: Player, game: Games) {
-    let tpSpot: Vec3;
-    switch (game) {
-        case Games.bedwars:
-            tpSpot = Vec3.create(-1000, 115, -1000);
-            break;
-        case Games.hikabrain:
-            tpSpot = Vec3.create(0, 106, 0);
-            break;
-    }
-
-    pl.teleport(tpSpot);
+export function spectate(pl: Player) {
     pl.addTag("spectator");
-    pl.addEffect(MobEffectInstance.create(14 /* invis ID */, 200, 255, false, true));
+    console.log("spectate() "+ pl.getNameTag() +" tags: " + pl.getTags());
+    if (!pl.hasTag("bedwars"))
+        bedrockServer.executeCommand(`tellraw "${pl.getNameTag()}" ${rawtext("§7§oYou have entered spectator mode. Type §r§7/spectate §oto leave")}`);
+    pl.addEffect(MobEffectInstance.create(MobEffectIds.Invisibility, 99999, 255, false, false, false));
+    pl.teleport(tpSpot);
     const abilities = pl.getAbilities();
     abilities.setAbility(AbilitiesIndex.MayFly, true);
     abilities.setAbility(AbilitiesIndex.Flying, true);
     abilities.setAbility(AbilitiesIndex.NoClip, true);
     abilities.setAbility(AbilitiesIndex.Invulnerable, true);
     abilities.setAbility(AbilitiesIndex.AttackPlayers, false);
+    abilities.setAbility(AbilitiesIndex.OpenContainers, false);
+    pl.syncAbilities();
+}
+export function spectateStop(pl: Player, tp: Vec3 = lobbyCoords) {
+    pl.teleport(tp);
+    pl.removeTag("spectator");
+    pl.removeEffect(MobEffectIds.Invisibility);
+    const abilities = pl.getAbilities();
+    abilities.setAbility(AbilitiesIndex.Flying, false);
+    abilities.setAbility(AbilitiesIndex.MayFly, false);
+    abilities.setAbility(AbilitiesIndex.NoClip, false);
+    abilities.setAbility(AbilitiesIndex.Invulnerable, false);
+    abilities.setAbility(AbilitiesIndex.AttackPlayers, true);
+    abilities.setAbility(AbilitiesIndex.OpenContainers, true);
     pl.syncAbilities();
 }
 
@@ -95,11 +115,14 @@ let participants: string[] = []
 export function stopGame() {
     isGameRunning.game = Games.none;
     isGameRunning.isRunning = false;
+    bedrockServer.level.getPlayers().forEach(pl => { if (pl.hasTag("spectator")) spectateStop(pl) });
+    specIntervalObj.stop();
     participants = [];
     bedrockServer.executeCommand("kill @e[type=item]");
-    bedrockServer.executeCommand("tp @a[tag=bedwars] 0 105 0");
-    bedrockServer.executeCommand("clear @a[tag=bedwars]");
-    bedrockServer.executeCommand("effect @a[tag=bedwars] clear");
+    bedrockServer.executeCommand("tp @a 0 105 0");
+    bedrockServer.executeCommand("spawnpoint @a 0 105 0");
+    bedrockServer.executeCommand("clear @a");
+    bedrockServer.executeCommand("effect @a clear");
     bedrockServer.executeCommand("tag @a remove bedwars");
 }
 
@@ -119,6 +142,18 @@ export async function startGame(game: Games, players: Player[], sec: number, tit
             }
             isGameRunning.game = game;
             isGameRunning.isRunning = true;
+            switch (game) {
+                case Games.bedwars:
+                    tpSpot = Vec3.create(-1000, 115, -1000);
+                    break;
+                case Games.hikabrain:
+                    tpSpot = Vec3.create(0, 106, 0);
+                    break;
+                default:
+                    tpSpot = lobbyCoords;
+            }
+            console.log("calling specIntervalObj.init()");
+            specIntervalObj.init();
             return participants;
         }
     } catch (error) {
@@ -179,7 +214,6 @@ async function joinForm(pl: Player, game: string) {
     });
     if (playForm) {
         addParticipant(pl.getName());
-        // console.log("First form " + participants[0] + participants[1]);
     } else {
         const playConfirmForm = await Form.sendTo(ni, {
             type: "modal",
@@ -191,7 +225,6 @@ async function joinForm(pl: Player, game: string) {
 
         if (!playConfirmForm) {
             addParticipant(pl.getName());
-            // console.log("Second form " + participants[0] + participants[1]);
         } else {
             bedrockServer.executeCommand(`tellraw "${pl.getName()}" ${rawtext("§7§oOk fine... But you can always reconsider and enter §f/joinqueue§7!")}`)
         }
@@ -249,3 +282,5 @@ export function leavequeue(origin: CommandOrigin, output: CommandOutput) {
         return;
     }
 }
+
+events.serverClose.on(() => specIntervalObj.stop());

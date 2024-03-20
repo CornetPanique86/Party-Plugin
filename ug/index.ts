@@ -14,10 +14,12 @@ type IsGameRunning = {
     game: Games;
     isRunning: boolean;
 }
-export let isGameRunning: IsGameRunning = {
+export const isGameRunning: IsGameRunning = {
     game: Games.none,
     isRunning: false
 };
+
+export const lobbyCoords: Vec3 = Vec3.create(0, 106, 0);
 
 console.log(logPrefix + "UG plugin loaded");
 

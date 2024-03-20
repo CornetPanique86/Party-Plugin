@@ -2,23 +2,22 @@ import { CommandOutput } from "bdsx/bds/command";
 import { CommandOrigin } from "bdsx/bds/commandorigin";
 import { bedrockServer } from "bdsx/launcher";
 import { LogInfo, rawtext } from "..";
-import { countdownActionbar, createCItemStack, getPlayerByName, startGame, stopGame } from "./utils";
-import { Games } from ".";
+import { countdownActionbar, createCItemStack, getPlayerByName, spectate, spectateStop, startGame, stopGame } from "./utils";
+import { Games, lobbyCoords } from ".";
 import { EnchantmentNames } from "bdsx/bds/enchants";
 import { CompoundTag, NBT } from "bdsx/bds/nbt";
 import { ItemStack } from "bdsx/bds/inventory";
 import { events } from "bdsx/event";
 import { CANCEL } from "bdsx/common";
-import { PlayerAttackEvent, PlayerInventoryChangeEvent, PlayerJoinEvent, PlayerLeftEvent, PlayerRespawnEvent } from "bdsx/event_impl/entityevent";
+import { PlayerAttackEvent, PlayerJoinEvent, PlayerLeftEvent, PlayerRespawnEvent } from "bdsx/event_impl/entityevent";
 import { Vec3 } from "bdsx/bds/blockpos";
-import { ActorDamageCause, ActorDamageSource, DimensionId } from "bdsx/bds/actor";
+import { Actor, ActorDamageCause, ActorDamageSource, ActorDefinitionIdentifier, ActorFlags, DimensionId } from "bdsx/bds/actor";
 import { BlockDestroyEvent } from "bdsx/event_impl/blockevent";
 import { BlockActor, BlockActorType, BlockSource } from "bdsx/bds/block";
 import { Player } from "bdsx/bds/player";
-import { MobEffectIds, MobEffectInstance } from "bdsx/bds/effects";
-import { AbilitiesIndex } from "bdsx/bds/abilities";
 import { nativeClass, nativeField } from "bdsx/nativeclass";
 import { int32_t } from "bdsx/nativetype";
+import { MobEffectIds, MobEffectInstance } from "bdsx/bds/effects";
 
 
 enum BedColor {
@@ -57,7 +56,7 @@ export async function bedwarsstart(param: { option: string }, origin: CommandOri
 
     // /bedwarsstart start
     if (bedrockServer.level.getActivePlayerCount() <= 1) {
-        origin.getEntity()?.isPlayer() ? bedrockServer.executeCommand(`tellraw "${origin.getName()}" ${rawtext("Minimum 2 players to start", LogInfo.error)}`)
+        origin.getEntity()?.isPlayer() ? origin.getEntity()!.runCommand("tellraw @s " +rawtext("Minimum 2 players to start", LogInfo.error))
                                        : output.error("Min 2 players to start");
         return;
     }
@@ -164,6 +163,8 @@ function setup(pls: string[]) {
         })
     });
 
+    clearMap();
+
     countdownActionbar(5, pls, false)
         .then(() => {
             // Clear/reset map
@@ -172,6 +173,11 @@ function setup(pls: string[]) {
             bedrockServer.executeCommand("clone 116 20 110 116 20 109 -1001 68 -1032"); // red bed
             bedrockServer.executeCommand("clone 117 20 111 118 20 111 -969 68 -1000"); // lime bed
             bedrockServer.executeCommand("inputpermission set @a[tag=bedwars] movement enabled");
+
+            // /fill ~19 ~ ~-19 ~-19 ~-20 ~19 purple_wool replace air
+            // /fill ~18 ~ ~-18 ~-18 ~-20 ~18 air replace purple_wool
+            // /fill ~19 ~-1 ~-18 ~-19 ~-19 ~18 air replace purple_wool
+            // /fill ~18 ~-1 ~-19 ~-18 ~-19 ~19 air replace purple_wool
             genObj.gen();
             gameIntervalObj.init();
             startListeners();
@@ -182,6 +188,58 @@ function setup(pls: string[]) {
             console.log(error.message);
             return;
         });
+}
+
+export function clearMap() {
+    const pos = {
+        x: -1039,
+        y: 99,
+        z: -1039
+    }
+    const offset = {
+        x: 39,
+        y: -21,
+        z: 39
+    }
+
+    const level = bedrockServer.level;
+    const region = level.getDimension(DimensionId.Overworld)?.getBlockSource();
+    if (!region) {
+        bedrockServer.executeCommand("tellraw @a[tag=bedwars] " + rawtext("Couldn't clear the map: region undefined", LogInfo.error));
+        return;
+    }
+    const levelID = level.getNewUniqueID();
+    const identifier = ActorDefinitionIdentifier.constructWith("minecraft:armor_stand");
+    const armorStand = Actor.summonAt(region, Vec3.create(pos.x, pos.y, pos.z), identifier, levelID);
+    identifier.destruct();
+    if (armorStand === null) {
+        bedrockServer.executeCommand("tellraw @a[tag=bedwars] " + rawtext("Couldn't clear the map: armor stand returned null", LogInfo.error));
+        return;
+    }
+    armorStand.setNameTag("clearMapArmorStand");
+    armorStand.setStatusFlag(ActorFlags.NoAI, true);
+    // armorStand.addEffect(MobEffectInstance.create(MobEffectIds.Invisibility, 99999, 255, false, false));
+
+    // for (let i=0; i<3; i++) {             /* Z AXIS */
+        // for (let j=0; j<3; j++) {         /* Y AXIS */
+            for (let k=0; k<3; k++) {     /* X AXIS */
+                const colors = ["pink", "magenta", "purple"];
+                setTimeout(() => {
+                    console.log(`posX: ${pos.x + k * offset.x}`);
+                    armorStand.teleport(Vec3.create(pos.x + k * offset.x, pos.y, pos.z));
+                    fill(colors[k]);
+                }, 5000);
+            }
+        // }
+    // }
+
+
+    function fill(color: string) {
+        console.log(armorStand.runCommand(`fill ~19 ~ ~-19 ~-19 ~-20 ~19 ${color}_wool replace air`).result);
+        console.log(armorStand.runCommand(`fill ~18 ~ ~-18 ~-18 ~-20 ~18 air replace ${color}_wool`).result);
+        console.log(armorStand.runCommand(`fill ~19 ~-1 ~-18 ~-19 ~-19 ~18 air replace ${color}_wool`).result);
+        console.log(armorStand.runCommand(`fill ~18 ~-1 ~-19 ~-18 ~-19 ~19 air replace ${color}_wool`).result);
+    }
 }
 
 // IRON INGOTS
@@ -218,21 +276,25 @@ const genObj = {
     },
     intervalFunc: function(){
         for (let i = 0; i < this.ironSpawns.length; i++) {
-            bedrockServer.level.getSpawner().spawnItem(
+            const pos = Vec3.create(this.ironSpawns[i][0], this.ironSpawns[i][1], this.ironSpawns[i][2]);
+            const itemActor = bedrockServer.level.getSpawner().spawnItem(
                 this.blockSource!,
                 this.iron_ingot,
-                Vec3.create(this.ironSpawns[i][0], this.ironSpawns[i][1], this.ironSpawns[i][2]),
+                pos,
                 0.25
             );
+            itemActor.teleport(pos);
         }
         if (this.sec === 10) {
             for (let i = 0; i < this.emeraldSpawns.length; i++) {
-                bedrockServer.level.getSpawner().spawnItem(
+                const pos = Vec3.create(this.emeraldSpawns[i][0], this.emeraldSpawns[i][1], this.emeraldSpawns[i][2]);
+                const itemActor = bedrockServer.level.getSpawner().spawnItem(
                     this.blockSource!,
                     this.emerald,
-                    Vec3.create(this.emeraldSpawns[i][0], this.emeraldSpawns[i][1], this.emeraldSpawns[i][2]),
+                    pos,
                     0.25
                 );
+                itemActor.teleport(pos);
             }
             this.sec = 0;
         }
@@ -255,30 +317,74 @@ const gameIntervalObj = {
     intervalFunc: function() {
         const players = bedrockServer.level.getPlayers();
         for (const player of players) {
-            if (!player.hasTag("bedwars")) break;
+            if (!player.hasTag("bedwars")) continue;
             if (player.getPosition().y < 0) {
+                if (!player.isAlive()) return;
                 player.die(ActorDamageSource.create(ActorDamageCause.Void));
             }
             const plName = player.getNameTag();
+            // Replace armor
+            const armorNames = ["_helmet", "_chestplate", "_leggings", "_boots"];
             if (bedrockServer.executeCommand(`clear "${plName}" iron_chestplate`).result === 1) {
-                bedrockServer.executeCommand(`execute as "${plName}" run function bw_iron_armor`);
-                break;
+                // bedrockServer.executeCommand(`execute as "${plName}" run function bw_iron_armor`);
+                bedrockServer.executeCommand(`tellraw "${plName}" ${rawtext("§l§d> §r§eEquipped §iIron §eArmor Set")}`);
+                player.playSound("armor.equip_chain");
+                const armor: ItemStack[] = [];
+                for (let i = 0; i < armorNames.length; i++) {
+                    const item = createCItemStack({
+                        item: "minecraft:iron" + armorNames[i],
+                        amount: 1,
+                        data: 0,
+                        name: "§r§iIron set",
+                        enchantment: {
+                            enchant: EnchantmentNames.Unbreaking,
+                            level: 5,
+                            isUnsafe: true
+                        }
+                    });
+                    armor.push(item);
+                }
+                armor.forEach((armorItem, index) => {
+                    if (index !== 1) player.setArmor(index, armorItem);
+                    armorItem.destruct();
+                });
+                continue;
             }
             if (bedrockServer.executeCommand(`clear "${plName}" diamond_chestplate`).result === 1) {
-                bedrockServer.executeCommand(`execute as "${plName}" run function bw_diamond_armor`);
-                break;
+                bedrockServer.executeCommand(`tellraw "${plName}" ${rawtext("§l§d> §r§eEquipped §sDiamond §eArmor Set")}`);
+                player.playSound("armor.equip_chain");
+                const armor: ItemStack[] = [];
+                for (let i = 0; i < armorNames.length; i++) {
+                    const item = createCItemStack({
+                        item: "minecraft:diamond" + armorNames[i],
+                        amount: 1,
+                        data: 0,
+                        name: "§r§sDiamond set",
+                        enchantment: {
+                            enchant: EnchantmentNames.Unbreaking,
+                            level: 5,
+                            isUnsafe: true
+                        }
+                    });
+                    armor.push(item);
+                }
+                armor.forEach((armorItem, index) => {
+                    if (index !== 1) player.setArmor(index, armorItem);
+                    armorItem.destruct();
+                });
+                continue;
             }
         }
     },
     interval: 0 as unknown as NodeJS.Timeout,
     stop: function(){
-        clearInterval(this.interval)
+        clearInterval(this.interval);
     }
 }
 
-
 function eliminate(pl: Player) {
     const plName = pl.getNameTag();
+    console.log("called eliminate() for: " + plName);
     teams.forEach((team, index) => { if (team.pls.includes(plName)) {
         team.pls.splice(team.pls.indexOf(plName), 1);
         if (team.pls.length === 0)
@@ -286,56 +392,32 @@ function eliminate(pl: Player) {
     }});
 
     bedrockServer.executeCommand("tellraw @a[tag=bedwars] " + rawtext(`${plName} §cwas eliminated. §l§2FINAL KILL!`));
-    bedrockServer.executeCommand(`clear "${plName}"`);
     pl.removeTag("bedwars");
-    pl.teleport(Vec3.create(0, 106, 0));
+    pl.runCommand("clear");
+    pl.runCommand("effect @s clear");
+    spectate(pl);
     isGameEnd();
 }
 function respawn(pl: Player) {
-    const tpSpot = Vec3.create(-1000, 115, -1000);
-    pl.teleport(tpSpot);
-    pl.addEffect(MobEffectInstance.create(14 /* invis ID */, 200, 255, false, true));
-    const abilities = pl.getAbilities();
-    abilities.setAbility(AbilitiesIndex.MayFly, true);
-    abilities.setAbility(AbilitiesIndex.Flying, true);
-    abilities.setAbility(AbilitiesIndex.NoClip, true);
-    abilities.setAbility(AbilitiesIndex.Invulnerable, true);
-    abilities.setAbility(AbilitiesIndex.AttackPlayers, false);
-    pl.syncAbilities();
+    spectate(pl);
+
     const plName = pl.getNameTag();
-
-    const specInterval = setInterval(() => {
-        const players = bedrockServer.level.getPlayers();
-        for (const player of players) {
-            if (!player.hasTag("bedwars") || player.getNameTag() === plName) break;
-            if (pl.distanceTo(player.getPosition()) < 8) {
-                pl.teleport(tpSpot);
-            }
-        }
-    }, 1000);
-
     let plTeam = -1;
     teams.forEach((team, index) => { if (team.pls.includes(plName)) plTeam = index });
     if (plTeam === -1) return;
     countdownActionbar(5, [plName], false, "§7Respawning...")
         .then(() => {
-            clearInterval(specInterval);
-            pl.teleport(Vec3.create(teamSpawns[plTeam][0], teamSpawns[plTeam][1], teamSpawns[plTeam][2]));
-            pl.removeEffect(MobEffectIds.Invisibility);
-            abilities.setAbility(AbilitiesIndex.Flying, false);
-            abilities.setAbility(AbilitiesIndex.MayFly, false);
-            abilities.setAbility(AbilitiesIndex.NoClip, false);
-            abilities.setAbility(AbilitiesIndex.Invulnerable, false);
-            abilities.setAbility(AbilitiesIndex.AttackPlayers, true);
-            pl.syncAbilities();
-            // abilities.destruct();
+            spectateStop(pl, Vec3.create(teamSpawns[plTeam][0], teamSpawns[plTeam][1], teamSpawns[plTeam][2]));
         })
         .catch(err => console.log(err.message));
 }
 function bedBreak(pl: string, team: number) {
     teams[team].bed = false;
     bedrockServer.executeCommand("tellraw @a[tag=bedwars] " + rawtext(`§l${teamNames[team]} bed §r§7was broken by §r${pl}§7!`, LogInfo.info));
-    bedrockServer.executeCommand("execute at @a[tag=bedwars] run playsound mob.enderdragon.growl ~~~ 0.5");
+    bedrockServer.level.getPlayers().forEach(player => {
+        if (!player.hasTag("bedwars")) return;
+        player.playSound("mob.enderdragon.growl", undefined, 0.1);
+    });
     let left = 0;
     teams[team].pls.forEach(pl1 => { if (!getPlayerByName(pl1)) left++ });
     if (left === teams[team].pls.length) {
@@ -351,6 +433,7 @@ function isGameEnd() {
     teams.forEach(team => {
         if (team.pls.length > 0) remainingTeams++;
     });
+    console.log("step 1: remainingTeams = " + remainingTeams);
     if (remainingTeams > 1) return;
     if (remainingTeams === 0) {
         bedrockServer.executeCommand("tellraw @a " + rawtext("A bedwars game ended without winners (everyone left)...", LogInfo.error));
@@ -362,6 +445,7 @@ function isGameEnd() {
     teams.forEach((team, index) => {
         if (team.pls.length > 0) lastTeam = index;
     });
+    console.log("step 2: lastTeam = " + lastTeam);
     if (lastTeam === -1) return;
 
     // If beds remaining, it means a team has a bed but no players = still alive
@@ -369,6 +453,7 @@ function isGameEnd() {
     teams.forEach((team, index) => {
         if (team.bed && index !== lastTeam) beds++;
     });
+    console.log("step 3: beds = " + beds);
     if (beds > 0) return;
 
     // isGameEnd = TRUE
@@ -376,6 +461,7 @@ function isGameEnd() {
 }
 
 function end(w: number) {
+    console.log("called end()");
     let winners: string[] = [];
     let winnersStr = "";
     teams[w].pls.forEach((winner, index) => {
@@ -383,16 +469,16 @@ function end(w: number) {
         index === teams[w].pls.length - 1 ? winnersStr += winner : winnersStr += winner + ", ";
     });
     bedrockServer.executeCommand("tellraw @a[tag=bedwars] " + rawtext(`
-    §7===========\n
-        §l§aVICTORY\n
-    ${teamNames[w]}§r§7: §f${winnersStr}\n
-    §7===========\n
+§7==================
+        §l§aVICTORY
+ ${teamNames[w]}§r§7: §f${winnersStr}
+§7==================
     `));
     for (const winner of winners) {
         const pl = getPlayerByName(winner);
-        pl?.playSound("mob.pillager.celebrate");
+        pl?.playSound("mob.pillager.celebrate", lobbyCoords);
     }
-    bedrockServer.executeCommand("tellraw @a " + rawtext(`§a§l${winnersStr} §r§awon a game of Bedwars!`));
+    bedrockServer.executeCommand("tellraw @a " + rawtext(`§a§l${winnersStr} §r§awon a game of §2Bedwars§a!`));
     stopBw();
 }
 function stopBw() {
@@ -413,15 +499,19 @@ function stopBw() {
 const playerRespawnLis = (e: PlayerRespawnEvent) => {
     if (!e.player.hasTag("bedwars")) return;
     const pl = e.player;
-
     let isPlEliminated = false;
     teams.forEach(team => {
-        if (team.pls.includes(pl.getNameTag()) && !team.bed) {
-            isPlEliminated = true;
-            eliminate(pl);
-        }
+        if (team.pls.includes(pl.getNameTag()) && !team.bed) isPlEliminated = true;
     });
-    if (!isPlEliminated) respawn(e.player);
+
+    // Wait for player to be properly alive -> avoid bugs
+    (async () => {
+        while (!pl.isAlive()) {
+            await new Promise(resolve => setTimeout(resolve, 50)); // Tick delay to avoid server load
+        }
+        console.log("playerRespawnLis: player alive!")
+        isPlEliminated ? eliminate(pl) : respawn(pl);
+    })();
 }
 const blockDestroyLis = (e: BlockDestroyEvent) => {
     // BEDS data: red=14 ; blue=11 ; green=5 ; yellow=4
@@ -437,31 +527,30 @@ const blockDestroyLis = (e: BlockDestroyEvent) => {
             bed = 0; break;
         case BedColor.Blue:
             bed = 1; break;
-        case BedColor.Green:
+        case BedColor.Lime:
             bed = 2; break;
         case BedColor.Yellow:
             bed = 3; break;
         default:
             return;
     }
-    const pl = e.player.getNameTag();
+    const pl = e.player;
     // Get player's team otherwise eliminate (just in case)
     let plTeam = -1;
-    teams.forEach((team, index) => { if (team.pls.includes(pl)) plTeam = index });
+    teams.forEach((team, index) => { if (team.pls.includes(pl.getNameTag())) plTeam = index });
     if (plTeam === -1) {
-        eliminate(e.player)
-        return
+        eliminate(pl);
+        return;
     };
 
     // If player breaks his own bed
     if (bed === plTeam) {
-        bedrockServer.executeCommand(`tellraw "${pl}" ${rawtext("You can't break your own bed! (u stoopid or what?)", LogInfo.error)}`);
+        pl.runCommand("tellraw @s " +rawtext("You can't break your own bed! (u stoopid or what?)", LogInfo.error));
         return CANCEL;
     }
 
     // Team's bed was broken
-    bedBreak(pl, bed);
-    return;
+    bedBreak(pl.getNameTag(), bed);
 }
 
 const playerAttackLis = (e: PlayerAttackEvent) => {

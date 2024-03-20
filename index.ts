@@ -41,7 +41,11 @@ events.serverOpen.on(() => {
         rainbowOffset = (rainbowOffset + 1) & rainbow.length;
 
         const coloredName = config.name.replace(/./g, v => rainbow[i++ % rainbow.length] + v);
-        bedrockServer.serverInstance.setMotd(coloredName);
+        try {
+            bedrockServer.serverInstance.setMotd(coloredName);
+        } catch (err) {
+            console.log(err);
+        }
     }, 5000);
 });
 

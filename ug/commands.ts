@@ -1,7 +1,7 @@
 import { CommandOutput, CommandPermissionLevel } from "bdsx/bds/command";
 import { command } from "bdsx/command";
-import { bedwarsstart } from "./bedwars";
-import { createCItemStack, joinqueue, leavequeue } from "./utils";
+import { bedwarsstart, clearMap } from "./bedwars";
+import { createCItemStack, joinqueue, leavequeue, spectate, spectateStop } from "./utils";
 import { CommandOrigin } from "bdsx/bds/commandorigin";
 import { int32_t } from "bdsx/nativetype";
 import { Block } from "bdsx/bds/block";
@@ -10,6 +10,7 @@ import { ArmorSlot } from "bdsx/bds/inventory";
 import { CompoundTag, NBT } from "bdsx/bds/nbt";
 import { AbilitiesIndex } from "bdsx/bds/abilities";
 import { bedrockServer } from "bdsx/launcher";
+import { isGameRunning } from ".";
 
 // Bedwars
 command.register("bedwarsstart", "Hehehehe", /* Command permission */ CommandPermissionLevel.Operator)
@@ -49,7 +50,14 @@ command.register("leavequeue", "Leave the queue you're currently in", /* Command
 // Spectate currently running game
 command.register("spectate", "Spectate the current game", /* Command permission */ CommandPermissionLevel.Normal).overload(
     (param, origin, output) => {
-        leavequeue(origin, output);
+        const actor = origin.getEntity();
+        if (!actor?.isPlayer()) return;
+
+        if (actor.hasTag("spectator")) {
+            spectateStop(actor);
+        } else {
+            if (isGameRunning.isRunning) spectate(actor);
+        }
     },
     { },
 );
@@ -65,30 +73,42 @@ command.register("testp", "testing", /* Command permission */ CommandPermissionL
     },
 );
 
+command.register("bedwarsclearmap", "cleazr map", /* Command permission */ CommandPermissionLevel.Operator).overload(
+    (param, origin, output) => {
+        clearMap();
+    }, { }
+);
+
 
 function test(param: { action: string, value: number }, origin: CommandOrigin, output: CommandOutput) {
     const actor = origin.getEntity();
     if (!actor?.isPlayer()) return;
 
-    if (!actor.hasTag("abilityTrue")) {
-        actor.addTag("abilityTrue");
-        const abilities = actor.getAbilities();
-        abilities.setAbility(AbilitiesIndex.MayFly, true);
-        abilities.setAbility(AbilitiesIndex.Flying, true);
-        abilities.setAbility(AbilitiesIndex.NoClip, true);
-        abilities.setAbility(AbilitiesIndex.Invulnerable, true);
-        abilities.setAbility(AbilitiesIndex.AttackPlayers, false);
-        actor.syncAbilities();
-    } else {
-        actor.removeTag("abilityTrue");
-        const abilities = actor.getAbilities();
-        abilities.setAbility(AbilitiesIndex.Flying, false);
-        abilities.setAbility(AbilitiesIndex.MayFly, false);
-        abilities.setAbility(AbilitiesIndex.NoClip, false);
-        abilities.setAbility(AbilitiesIndex.Invulnerable, false);
-        abilities.setAbility(AbilitiesIndex.AttackPlayers, true);
-        actor.syncAbilities();
-    }
+    const actorName = actor.getNameTag();
+    console.log(actorName);
+    const result1 = bedrockServer.executeCommand(`clear "${actorName}"`).result;
+    const result2 = bedrockServer.executeCommand(`clear ${actorName}`).result;
+    console.log("result1: " + result1 + " ; result2: " + result2);
+
+    // if (!actor.hasTag("abilityTrue")) {
+    //     actor.addTag("abilityTrue");
+    //     const abilities = actor.getAbilities();
+    //     abilities.setAbility(AbilitiesIndex.MayFly, true);
+    //     abilities.setAbility(AbilitiesIndex.Flying, true);
+    //     abilities.setAbility(AbilitiesIndex.NoClip, true);
+    //     abilities.setAbility(AbilitiesIndex.Invulnerable, true);
+    //     abilities.setAbility(AbilitiesIndex.AttackPlayers, false);
+    //     actor.syncAbilities();
+    // } else {
+    //     actor.removeTag("abilityTrue");
+    //     const abilities = actor.getAbilities();
+    //     abilities.setAbility(AbilitiesIndex.Flying, false);
+    //     abilities.setAbility(AbilitiesIndex.MayFly, false);
+    //     abilities.setAbility(AbilitiesIndex.NoClip, false);
+    //     abilities.setAbility(AbilitiesIndex.Invulnerable, false);
+    //     abilities.setAbility(AbilitiesIndex.AttackPlayers, true);
+    //     actor.syncAbilities();
+    // }
 
     // let armorSlot = ArmorSlot.Head;
     // let armor = "minecraft:diamond_helmet";
