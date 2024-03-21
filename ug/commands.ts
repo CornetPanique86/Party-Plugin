@@ -1,11 +1,11 @@
 import { CommandOutput, CommandPermissionLevel } from "bdsx/bds/command";
 import { command } from "bdsx/command";
-import { bedwarsstart, clearMap } from "./bedwars";
+import { bedwarsstart, clearMap, clearMap2 } from "./bedwars";
 import { createCItemStack, joinqueue, leavequeue, spectate, spectateStop } from "./utils";
 import { CommandOrigin } from "bdsx/bds/commandorigin";
 import { int32_t } from "bdsx/nativetype";
 import { Block } from "bdsx/bds/block";
-import { BlockPos } from "bdsx/bds/blockpos";
+import { BlockPos, RelativeFloat, Vec3 } from "bdsx/bds/blockpos";
 import { ArmorSlot } from "bdsx/bds/inventory";
 import { CompoundTag, NBT } from "bdsx/bds/nbt";
 import { AbilitiesIndex } from "bdsx/bds/abilities";
@@ -13,7 +13,7 @@ import { bedrockServer } from "bdsx/launcher";
 import { isGameRunning } from ".";
 
 // Bedwars
-command.register("bedwarsstart", "Hehehehe", /* Command permission */ CommandPermissionLevel.Operator)
+command.register("bedwarsstart", "Hehehehe", CommandPermissionLevel.Operator)
     .overload(
         (param, origin, output) => {
             bedwarsstart(param, origin, output);
@@ -32,7 +32,7 @@ command.register("bedwarsstart", "Hehehehe", /* Command permission */ CommandPer
     );
 
 // Join game queue
-command.register("joinqueue", "Join the queue of a game", /* Command permission */ CommandPermissionLevel.Normal).overload(
+command.register("joinqueue", "Join the queue of a game", CommandPermissionLevel.Normal).overload(
     (param, origin, output) => {
         joinqueue(origin, output);
     },
@@ -40,7 +40,7 @@ command.register("joinqueue", "Join the queue of a game", /* Command permission 
 );
 
 // Leave game queue
-command.register("leavequeue", "Leave the queue you're currently in", /* Command permission */ CommandPermissionLevel.Normal).overload(
+command.register("leavequeue", "Leave the queue you're currently in", CommandPermissionLevel.Normal).overload(
     (param, origin, output) => {
         leavequeue(origin, output);
     },
@@ -48,7 +48,7 @@ command.register("leavequeue", "Leave the queue you're currently in", /* Command
 );
 
 // Spectate currently running game
-command.register("spectate", "Spectate the current game", /* Command permission */ CommandPermissionLevel.Normal).overload(
+command.register("spectate", "Spectate the current game", CommandPermissionLevel.Normal).overload(
     (param, origin, output) => {
         const actor = origin.getEntity();
         if (!actor?.isPlayer()) return;
@@ -63,22 +63,52 @@ command.register("spectate", "Spectate the current game", /* Command permission 
 );
 
 // test
-command.register("testp", "testing", /* Command permission */ CommandPermissionLevel.Operator).overload(
+command.register("testp", "testing", CommandPermissionLevel.Operator).overload(
     (param, origin, output) => {
         test(param, origin, output);
     },
     {
         action: command.enum("action.data", "data"),
         value: int32_t
-    },
+    }
 );
 
-command.register("bedwarsclearmap", "cleazr map", /* Command permission */ CommandPermissionLevel.Operator).overload(
+command.register("bedwarsclearmap", "cleazr map", CommandPermissionLevel.Operator).overload(
     (param, origin, output) => {
-        clearMap();
-    }, { }
+        // clearMap();
+        clearMap2();
+        // if (param.value === 1) {
+        //     bedrockServer.executeCommand("fill -975 100 -1025 -1025 65 -975 blue_wool replace air");
+        // } else {
+        //     bedrockServer.executeCommand("fill -975 100 -1025 -1025 65 -975 air replace blue_wool");
+        // }
+
+        output.success("We made it!");
+    },
+    {
+        // action: command.enum("action.data", "data"),
+        // value: int32_t
+    }
 );
 
+command.register("tpvec", "tp w vec3", CommandPermissionLevel.Operator).overload(
+    (param, origin, output) => {
+        const actor = origin.getEntity();
+        if (!actor?.isPlayer()) return;
+        actor.teleport(Vec3.create(param.x.value, param.y.value, param.z.value));
+        output.success(
+            `relative float example> origin=${origin.getName()}\n` +
+                `${param.x.value} ${param.x.is_relative}\n` +
+                `${param.y.value} ${param.y.is_relative}\n` +
+                `${param.z.value} ${param.z.is_relative}\n`,
+        );
+    },
+    {
+        x: RelativeFloat,
+        y: RelativeFloat,
+        z: RelativeFloat,
+    }
+);
 
 function test(param: { action: string, value: number }, origin: CommandOrigin, output: CommandOutput) {
     const actor = origin.getEntity();

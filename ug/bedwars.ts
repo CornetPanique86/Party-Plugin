@@ -10,10 +10,10 @@ import { ItemStack } from "bdsx/bds/inventory";
 import { events } from "bdsx/event";
 import { CANCEL } from "bdsx/common";
 import { PlayerAttackEvent, PlayerJoinEvent, PlayerLeftEvent, PlayerRespawnEvent } from "bdsx/event_impl/entityevent";
-import { Vec3 } from "bdsx/bds/blockpos";
+import { BlockPos, Vec3 } from "bdsx/bds/blockpos";
 import { Actor, ActorDamageCause, ActorDamageSource, ActorDefinitionIdentifier, ActorFlags, DimensionId } from "bdsx/bds/actor";
 import { BlockDestroyEvent } from "bdsx/event_impl/blockevent";
-import { BlockActor, BlockActorType, BlockSource } from "bdsx/bds/block";
+import { Block, BlockActor, BlockActorType, BlockSource } from "bdsx/bds/block";
 import { Player } from "bdsx/bds/player";
 import { nativeClass, nativeField } from "bdsx/nativeclass";
 import { int32_t } from "bdsx/nativetype";
@@ -163,7 +163,7 @@ function setup(pls: string[]) {
         })
     });
 
-    clearMap();
+    clearMap2();
 
     countdownActionbar(5, pls, false)
         .then(() => {
@@ -190,11 +190,71 @@ function setup(pls: string[]) {
         });
 }
 
-export function clearMap() {
+export async function clearMap2() {
+    bedrockServer.executeCommand("title @a[tag=bedwars] actionbar §eClearing map... §7(lag expected)");
+    const air = Block.create("minecraft:air")!;
+    const blocks = [
+        Block.create("minecraft:white_wool")!,
+        Block.create("minecraft:oak_planks")!,
+        Block.create("minecraft:end_stone")!,
+        Block.create("minecraft:ladder")!
+    ];
+    const fromCoordsX = -1058;
+    const fromCoordsY = 30;
+    const fromCoordsZ = -942;
+    const toCoordsX = -942;
+    const toCoordsY = 100;
+    const toCoordsZ = -1058;
+
+    // Calculate the number of blocks to fill
+    const deltaX = Math.abs(toCoordsX - fromCoordsX);
+    const deltaY = Math.abs(toCoordsY - fromCoordsY);
+    const deltaZ = Math.abs(toCoordsZ - fromCoordsZ);
+    const totalBlocks = (deltaX + 1) * (deltaY + 1) * (deltaZ + 1);
+
+    if (totalBlocks > 1000000) {
+        bedrockServer.executeCommand("tellraw @a[tag=bedwars] " + rawtext(`Couldn't clear the map: 1 million blocks max! ${deltaX}x${deltaY}x${deltaZ} => ${totalBlocks}`, LogInfo.error));
+        return;
+    }
+
+    const region = bedrockServer.level.getDimension(DimensionId.Overworld)?.getBlockSource();
+    if (!region) {
+        bedrockServer.executeCommand("tellraw @a[tag=bedwars] " + rawtext("Couldn't clear the map: region undefined", LogInfo.error));
+        return;
+    }
+
+    // Fill the region with the specified block
+    const sourceX = Math.min(fromCoordsX, toCoordsX),
+          destX = Math.max(fromCoordsX, toCoordsX),
+          sourceY = Math.min(fromCoordsY, toCoordsY),
+          destY = Math.max(fromCoordsY, toCoordsY),
+          sourceZ = Math.min(fromCoordsZ, toCoordsZ),
+          destZ = Math.max(fromCoordsZ, toCoordsZ);
+    let clearedBlocksCounter = 0;
+    for (let x = sourceX; x <= destX; x++) {
+        for (let y = sourceY; y <= destY; y++) {
+            for (let z = sourceZ; z <= destZ; z++) {
+                const blockPos = BlockPos.create(x, y, z);
+                for (const block of blocks) {
+                    if (region.getBlock(blockPos).equals(block)) {
+                        region.setBlock(blockPos, air);
+                        clearedBlocksCounter++;
+                        break;
+                    };
+                }
+            }
+        }
+    }
+    bedrockServer.executeCommand(`title @a[tag=bedwars] actionbar §aCleared §l${clearedBlocksCounter} §r§ablocks`);
+
+    console.log(`Cleared region from (${fromCoordsX}, ${fromCoordsY}, ${fromCoordsZ}) to (${toCoordsX}, ${toCoordsY}, ${toCoordsZ}) with ${totalBlocks} blocks.`);
+}
+
+export async function clearMap() {
     const pos = {
-        x: -1039,
+        x: -1038.5,
         y: 99,
-        z: -1039
+        z: -1038.5
     }
     const offset = {
         x: 39,
@@ -222,24 +282,34 @@ export function clearMap() {
 
     // for (let i=0; i<3; i++) {             /* Z AXIS */
         // for (let j=0; j<3; j++) {         /* Y AXIS */
-            for (let k=0; k<3; k++) {     /* X AXIS */
-                const colors = ["pink", "magenta", "purple"];
-                setTimeout(() => {
-                    console.log(`posX: ${pos.x + k * offset.x}`);
-                    armorStand.teleport(Vec3.create(pos.x + k * offset.x, pos.y, pos.z));
-                    fill(colors[k]);
-                }, 5000);
-            }
+            // for (let k=0; k<3; k++) {     /* X AXIS */
+            //     const colors = ["pink", "magenta", "purple"];
+            //     console.log(`posX: ${pos.x + k * offset.x}`);
+            //     armorStand.teleport(Vec3.create(pos.x + k * offset.x, pos.y, pos.z));
+            //     const fillResult = fill(colors[k]);
+            //     if (!fillResult) {
+            //         bedrockServer.executeCommand("tellraw @a[tag=bedwars] " + rawtext("Error while clearing parts of map", LogInfo.error));
+            //     }
+            //     await new Promise(resolve => setTimeout(resolve, 2500));
+            // }
         // }
     // }
 
 
-    function fill(color: string) {
-        console.log(armorStand.runCommand(`fill ~19 ~ ~-19 ~-19 ~-20 ~19 ${color}_wool replace air`).result);
-        console.log(armorStand.runCommand(`fill ~18 ~ ~-18 ~-18 ~-20 ~18 air replace ${color}_wool`).result);
-        console.log(armorStand.runCommand(`fill ~19 ~-1 ~-18 ~-19 ~-19 ~18 air replace ${color}_wool`).result);
-        console.log(armorStand.runCommand(`fill ~18 ~-1 ~-19 ~-18 ~-19 ~19 air replace ${color}_wool`).result);
-    }
+    // function fill(color: string): boolean {
+    //     console.log("fill: " +color);
+    //     let results: number[] = [];
+    //     // results.push(armorStand.runCommand(`fill ~19 ~ ~-19 ~-19 ~-20 ~19 ${color}_wool replace air`).result);
+    //     // results.push(armorStand.runCommand(`fill ~18 ~ ~-18 ~-18 ~-20 ~18 air replace ${color}_wool`).result);
+    //     // results.push(armorStand.runCommand(`fill ~19 ~-1 ~-18 ~-19 ~-19 ~18 air replace ${color}_wool`).result);
+    //     // results.push(armorStand.runCommand(`fill ~18 ~-1 ~-19 ~-18 ~-19 ~19 air replace ${color}_wool`).result);
+    //     results.push(armorStand.runCommand(`setblock ~~~ ${color}_wool`).result);
+    //     results.push(armorStand.runCommand(`setblock ~~-1~ ${color}_wool`).result);
+    //     results.push(armorStand.runCommand(`setblock ~~-2~ ${color}_wool`).result);
+    //     results.push(armorStand.runCommand(`setblock ~~-3~ ${color}_wool`).result);
+    //     results.forEach(result => { console.log(result); if (result !== 1) return false; });
+    //     return true;
+    // }
 }
 
 // IRON INGOTS
