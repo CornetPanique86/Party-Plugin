@@ -190,7 +190,32 @@ function setup(pls: string[]) {
         });
 }
 
+export async function clearMapFill() {
+    const before = Date.now();
+    const result = bedrockServer.executeCommand("fill -1058 30 -942 -942 100 -1058 air replace white_wool").result;
+    //  /fill -1048 30 -945 -945 100 -1048 air replace white_wool
+    console.log(result);
+    console.log(Date.now() - before);
+}
+export async function clearMapFills() {
+    const fills = [
+        "-1048 30 -945 -1001 100 -999",
+        "-1048 30 -1048 -1001 100 -1000",
+        "-945 30 -1048 -1000 100 -1000",
+        "-945 30 -945 -1000 100 -999"
+    ]
+    const parts = ["blue-yellow", "yellow-red", "red-green", "green-blue"];
+    for (let i=0; i<fills.length; i++) {
+        const result = bedrockServer.executeCommand("fill " + fills[i] + " air replace white_wool").result;
+        if (result !== 1) {
+            bedrockServer.executeCommand("tellraw @a[tag=bedwars] " + rawtext("Error while clearing map at quadrant " + parts[i], LogInfo.error));
+        }
+        await new Promise(resolve => setTimeout(resolve, 500));
+    }
+}
+
 export async function clearMap2() {
+    const before = Date.now();
     bedrockServer.executeCommand("title @a[tag=bedwars] actionbar §eClearing map... §7(lag expected)");
     const air = Block.create("minecraft:air")!;
     const blocks = [
@@ -245,6 +270,7 @@ export async function clearMap2() {
             }
         }
     }
+    console.log(Date.now() - before);
     bedrockServer.executeCommand(`title @a[tag=bedwars] actionbar §aCleared §l${clearedBlocksCounter} §r§ablocks`);
 
     console.log(`Cleared region from (${fromCoordsX}, ${fromCoordsY}, ${fromCoordsZ}) to (${toCoordsX}, ${toCoordsY}, ${toCoordsZ}) with ${totalBlocks} blocks.`);

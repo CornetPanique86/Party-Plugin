@@ -1,6 +1,6 @@
 import { CommandOutput, CommandPermissionLevel } from "bdsx/bds/command";
 import { command } from "bdsx/command";
-import { bedwarsstart, clearMap, clearMap2 } from "./bedwars";
+import { bedwarsstart, clearMap, clearMap2, clearMapFill, clearMapFills } from "./bedwars";
 import { createCItemStack, joinqueue, leavequeue, spectate, spectateStop } from "./utils";
 import { CommandOrigin } from "bdsx/bds/commandorigin";
 import { int32_t } from "bdsx/nativetype";
@@ -75,19 +75,19 @@ command.register("testp", "testing", CommandPermissionLevel.Operator).overload(
 
 command.register("bedwarsclearmap", "cleazr map", CommandPermissionLevel.Operator).overload(
     (param, origin, output) => {
-        // clearMap();
-        clearMap2();
-        // if (param.value === 1) {
-        //     bedrockServer.executeCommand("fill -975 100 -1025 -1025 65 -975 blue_wool replace air");
-        // } else {
-        //     bedrockServer.executeCommand("fill -975 100 -1025 -1025 65 -975 air replace blue_wool");
-        // }
+        if (param.value === 0) {
+            clearMap2();
+        } else if (param.value === 1) {
+            clearMapFill();
+        } else if (param.value === 2) {
+            clearMapFills();
+        }
 
         output.success("We made it!");
     },
     {
-        // action: command.enum("action.data", "data"),
-        // value: int32_t
+        action: command.enum("action.data", "data"),
+        value: int32_t
     }
 );
 
