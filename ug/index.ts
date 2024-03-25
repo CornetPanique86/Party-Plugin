@@ -62,9 +62,11 @@ console.log(logPrefix + "UG plugin loaded");
 
 events.playerJoin.on(e => {
     const pl = e.player;
-    if ((pl.hasTag("bedwars") || pl.hasTag("hikabrain") || !isGameRunning.isRunning)) {
-        pl.removeTag("bedwars");
-        pl.removeTag("hikabrain");
+    if (!isGameRunning.isRunning) { // If game is not running
+        if (pl.hasTag("bedwars") || pl.hasTag("hikabrain")) {
+            pl.removeTag("bedwars");
+            pl.removeTag("hikabrain");
+        }
         pl.removeAllEffects();
         bedrockServer.executeCommand(`clear ${pl.getNameTag()}`);
         pl.teleport(Vec3.create(0, 105, 0));

@@ -1,11 +1,10 @@
 import { CommandOutput, CommandPermissionLevel } from "bdsx/bds/command";
 import { command } from "bdsx/command";
-import { bedwarsstart, clearMap, clearMap2, clearMapFill, clearMapFills } from "./bedwars";
+import { bedwarsstart } from "./bedwars";
 import { createCItemStack, joinqueue, leavequeue, spectate, spectateStop } from "./utils";
 import { CommandOrigin } from "bdsx/bds/commandorigin";
 import { int32_t } from "bdsx/nativetype";
-import { Block } from "bdsx/bds/block";
-import { BlockPos, RelativeFloat, Vec3 } from "bdsx/bds/blockpos";
+import { RelativeFloat, Vec3 } from "bdsx/bds/blockpos";
 import { ArmorSlot } from "bdsx/bds/inventory";
 import { CompoundTag, NBT } from "bdsx/bds/nbt";
 import { AbilitiesIndex } from "bdsx/bds/abilities";
@@ -75,15 +74,8 @@ command.register("testp", "testing", CommandPermissionLevel.Operator).overload(
 
 command.register("bedwarsclearmap", "cleazr map", CommandPermissionLevel.Operator).overload(
     (param, origin, output) => {
-        if (param.value === 0) {
-            clearMap2();
-        } else if (param.value === 1) {
-            clearMapFill();
-        } else if (param.value === 2) {
-            clearMapFills();
-        }
 
-        output.success("We made it!");
+        output.success("We didn't make it!");
     },
     {
         action: command.enum("action.data", "data"),
