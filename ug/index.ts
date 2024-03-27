@@ -7,6 +7,7 @@ import { bedrockServer } from "bdsx/launcher";
 import { proc } from "bdsx/bds/symbols";
 import { MemoryUnlocker } from "bdsx/unlocker";
 import { procHacker } from "bdsx/prochacker";
+import { spectateStop } from "./utils";
 
 export enum Games {
     none = "None",
@@ -66,6 +67,9 @@ events.playerJoin.on(e => {
         if (pl.hasTag("bedwars") || pl.hasTag("hikabrain")) {
             pl.removeTag("bedwars");
             pl.removeTag("hikabrain");
+        }
+        if (pl.hasTag("spectator")) {
+            spectateStop(pl);
         }
         pl.removeAllEffects();
         bedrockServer.executeCommand(`clear ${pl.getNameTag()}`);

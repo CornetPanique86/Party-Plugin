@@ -1,5 +1,5 @@
 import { Form } from "bdsx/bds/form";
-import { Player } from "bdsx/bds/player";
+import { GameType, Player } from "bdsx/bds/player";
 import { bedrockServer } from "bdsx/launcher";
 import { Games, isGameRunning, lobbyCoords } from ".";
 import { CommandOrigin } from "bdsx/bds/commandorigin";
@@ -11,6 +11,8 @@ import { Vec3 } from "bdsx/bds/blockpos";
 import { MobEffectIds, MobEffectInstance } from "bdsx/bds/effects";
 import { AbilitiesIndex } from "bdsx/bds/abilities";
 import { events } from "bdsx/event";
+import { CANCEL } from "bdsx/common";
+import { PlayerPickupItemEvent } from "bdsx/event_impl/entityevent";
 
 
 export function getPlayerByName(name: string): Player | null {
@@ -54,15 +56,17 @@ const specIntervalObj = {
         console.log("called specIntervalObj.init()");
         console.log("tpSpot: "+ tpSpot.x, tpSpot.y, tpSpot.z);
         this.interval = setInterval(() => this.intervalFunc(), 1000);
+
+        events.playerPickupItem.on(this.playerPickupItem);
+    },
+    playerPickupItem: function(e: PlayerPickupItemEvent) {
+        if (e.player.hasTag("spectator")) return CANCEL;
     },
     intervalFunc: function() {
+        // let pause = 0;
         const players = bedrockServer.level.getPlayers();
         for (const specPl of players) {
             if (!specPl.hasTag("spectator")) continue;
-            if (specPl.hasTag("bedwars")) {
-                specPl.removeTag("bedwars");
-                continue;
-            }
             for (const player2 of players) {
                 if (player2.getNameTag() === specPl.getNameTag()) continue;
                 if (!(player2.hasTag("bedwars") || player2.hasTag("hikabrain"))) continue;
@@ -72,19 +76,26 @@ const specIntervalObj = {
                     specPl.syncAbilities();
                 }
             }
+            // if (pause === 5) {
+            //     specPl.runCommand("clear");
+            // }
         }
+        // pause >= 5 ? pause=0 : pause++;
     },
     interval: 0 as unknown as NodeJS.Timeout,
     stop: function(){
         clearInterval(this.interval);
+        events.playerPickupItem.remove(this.playerPickupItem);
     }
 }
 
 export function spectate(pl: Player) {
+    pl.setGameType(GameType.Adventure);
     pl.addTag("spectator");
-    console.log("spectate() "+ pl.getNameTag() +" tags: " + pl.getTags());
-    if (!pl.hasTag("bedwars"))
-        bedrockServer.executeCommand(`tellraw "${pl.getNameTag()}" ${rawtext("§7§oYou have entered spectator mode. Type §r§7/spectate §oto leave")}`);
+    if (!pl.hasTag("bedwars")) {
+        pl.sendMessage("§7§oYou have entered spectator mode. Type §r§7/spectate §oto leave");
+        pl.removeFakeScoreboard();
+    }
     pl.addEffect(MobEffectInstance.create(MobEffectIds.Invisibility, 99999, 255, false, false, false));
     pl.teleport(tpSpot);
     const abilities = pl.getAbilities();
@@ -120,10 +131,12 @@ export function stopGame() {
     participants = [];
     bedrockServer.executeCommand("kill @e[type=item]");
     bedrockServer.executeCommand("tp @a 0 105 0");
+    bedrockServer.executeCommand("gamemode a @a");
     bedrockServer.executeCommand("spawnpoint @a 0 105 0");
     bedrockServer.executeCommand("clear @a");
     bedrockServer.executeCommand("effect @a clear");
     bedrockServer.executeCommand("tag @a remove bedwars");
+    bedrockServer.executeCommand("tag @a remove hikabrain");
 }
 
 export async function startGame(game: Games, players: Player[], sec: number, title: string = "§aStarting in..."): Promise<string[] | null> {
@@ -137,7 +150,7 @@ export async function startGame(game: Games, players: Player[], sec: number, tit
         const result = await countdownQueue(sec, title);
         if (result) {
             if (participants.length < 2) {
-                bedrockServer.executeCommand(`tellraw @a ${rawtext("The bedwars game was §ccancelled§r. Not enough players!", LogInfo.info)}`);
+                bedrockServer.executeCommand(`tellraw @a ${rawtext(`The ${game} game was §ccancelled§r. Not enough players!`, LogInfo.info)}`);
                 return null;
             }
             isGameRunning.game = game;
