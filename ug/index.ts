@@ -17,10 +17,12 @@ export enum Games {
 type IsGameRunning = {
     game: Games;
     isRunning: boolean;
+    isSpectateInitialized: boolean;
 }
 export const isGameRunning: IsGameRunning = {
     game: Games.none,
-    isRunning: false
+    isRunning: false,
+    isSpectateInitialized: false
 };
 
 export const lobbyCoords: Vec3 = Vec3.create(0, 106, 0);

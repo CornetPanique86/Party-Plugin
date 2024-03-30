@@ -50,11 +50,21 @@ export function createCItemStack(item: ItemDesc) {
 }
 
 let tpSpot: Vec3;
+// plus grand que le 1er, plus petit que le 2ème
+const gameBounds = [{ x: -2000, y: -15, z: -2000 }, { x: 2000, y: 320, z: 2000 }];
 
 const specIntervalObj = {
     init: function() {
         console.log("called specIntervalObj.init()");
         console.log("tpSpot: "+ tpSpot.x, tpSpot.y, tpSpot.z);
+
+        if (gameBounds[0].x > gameBounds[1].x || gameBounds[0].y > gameBounds[1].y || gameBounds[0].z > gameBounds[1].z) {
+            isGameRunning.isSpectateInitialized = false;
+            console.log("Incorrect game bounds!");
+            return;
+        }
+        isGameRunning.isSpectateInitialized = true;
+
         this.interval = setInterval(() => this.intervalFunc(), 1000);
 
         events.playerPickupItem.on(this.playerPickupItem);
@@ -67,6 +77,14 @@ const specIntervalObj = {
         const players = bedrockServer.level.getPlayers();
         for (const specPl of players) {
             if (!specPl.hasTag("spectator")) continue;
+            const {x, y, z} = specPl.getPosition();
+            if (x < gameBounds[0].x || x > gameBounds[1].x  ||  y < gameBounds[0].y || y > gameBounds[1].y  || z < gameBounds[0].z || z > gameBounds[1].z) {
+                specPl.sendMessage("§cOut of bounds!");
+                specPl.teleport(tpSpot);
+                specPl.getAbilities().setAbility(AbilitiesIndex.Flying, true);
+                specPl.syncAbilities();
+                continue;
+            }
             for (const player2 of players) {
                 if (player2.getNameTag() === specPl.getNameTag()) continue;
                 if (!(player2.hasTag("bedwars") || player2.hasTag("hikabrain"))) continue;
@@ -74,6 +92,7 @@ const specIntervalObj = {
                     specPl.teleport(tpSpot);
                     specPl.getAbilities().setAbility(AbilitiesIndex.Flying, true);
                     specPl.syncAbilities();
+                    break;
                 }
             }
             // if (pause === 5) {
@@ -145,7 +164,7 @@ export async function startGame(game: Games, players: Player[], sec: number, tit
     bedrockServer.executeCommand("title @a times 0 30 0");
     bedrockServer.executeCommand(`tellraw @a ${rawtext(`A ${game} game is starting in ${sec} seconds!`), LogInfo.info}`);
     bedrockServer.executeCommand("playsound note.harp @a");
-    players.forEach(pl => joinForm(pl, game));
+    players.forEach(pl => joinForm(pl, game, sec));
     try {
         const result = await countdownQueue(sec, title);
         if (result) {
@@ -158,9 +177,29 @@ export async function startGame(game: Games, players: Player[], sec: number, tit
             switch (game) {
                 case Games.bedwars:
                     tpSpot = Vec3.create(-1000, 115, -1000);
+                    gameBounds[0] = {
+                        x: -1060,
+                        y: 10,
+                        z: -1060
+                    };
+                    gameBounds[1] = {
+                        x: -930,
+                        y: 120,
+                        z: -930
+                    };
                     break;
                 case Games.hikabrain:
-                    tpSpot = Vec3.create(0, 106, 0);
+                    tpSpot = Vec3.create(-240, 37, -237);
+                    gameBounds[0] = {
+                        x: -266,
+                        y: -15,
+                        z: -251
+                    };
+                    gameBounds[1] = {
+                        x: -215,
+                        y: 60,
+                        z: -222
+                    };
                     break;
                 default:
                     tpSpot = lobbyCoords;
@@ -216,12 +255,12 @@ export function countdownActionbar(sec: number, pls: string[], actionbar: boolea
     });
 }
 
-async function joinForm(pl: Player, game: string) {
+async function joinForm(pl: Player, game: string, sec: number) {
     const ni = pl.getNetworkIdentifier();
     const playForm = await Form.sendTo(ni, {
         type: "modal",
         title: `Play ${game}?`,
-        content: `A §a${game} §rgame is starting in 15 seconds.\n§l§6> §r§eTo participate press §l'Yes'`,
+        content: `A §a${game} §rgame is starting in ${sec} seconds.\n§l§6> §r§eTo participate press §l'Yes'`,
         button1: "§2YES",
         button2: "§cnah"
     });

@@ -11,6 +11,7 @@ import { AbilitiesIndex } from "bdsx/bds/abilities";
 import { bedrockServer } from "bdsx/launcher";
 import { isGameRunning } from ".";
 import { CommandResultType } from "bdsx/commandresult";
+import { hikabrainstart } from "./hikabrain";
 
 // Bedwars
 command.register("bedwarsstart", "Hehehehe", CommandPermissionLevel.Operator)
@@ -35,7 +36,7 @@ command.register("bedwarsstart", "Hehehehe", CommandPermissionLevel.Operator)
 command.register("hikabrainstart", "Hehehehebrain", CommandPermissionLevel.Operator)
     .overload(
         (param, origin, output) => {
-            bedwarsstart(param, origin, output);
+            hikabrainstart(param, origin, output);
         },
         {
             option: command.enum("option.start", "start"),
@@ -43,7 +44,7 @@ command.register("hikabrainstart", "Hehehehebrain", CommandPermissionLevel.Opera
     )
     .overload(
         (param, origin, output) => {
-            bedwarsstart(param, origin, output);
+            hikabrainstart(param, origin, output);
         },
         {
             option: command.enum("option.stop", "stop"),
@@ -75,7 +76,8 @@ command.register("spectate", "Spectate the current game", CommandPermissionLevel
         if (actor.hasTag("spectator")) {
             spectateStop(actor);
         } else {
-            if (isGameRunning.isRunning) spectate(actor);
+            if (isGameRunning.isRunning && isGameRunning.isSpectateInitialized) spectate(actor)
+            else output.error("Unable to spectate right now");
         }
     },
     { },
