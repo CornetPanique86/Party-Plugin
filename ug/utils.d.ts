@@ -4,6 +4,7 @@ import { CommandOrigin } from "bdsx/bds/commandorigin";
 import { CommandOutput } from "bdsx/bds/command";
 import { ItemStack } from "bdsx/bds/inventory";
 import { EnchantmentNames } from "bdsx/bds/enchants";
+import { Vec3 } from "bdsx/bds/blockpos";
 export declare function getPlayerByName(name: string): Player | null;
 type ItemDesc = {
     item: string;
@@ -18,6 +19,8 @@ type ItemDesc = {
     };
 };
 export declare function createCItemStack(item: ItemDesc): ItemStack;
+export declare function spectate(pl: Player): void;
+export declare function spectateStop(pl: Player, tp?: Vec3): void;
 export declare function stopGame(): void;
 export declare function startGame(game: Games, players: Player[], sec: number, title?: string): Promise<string[] | null>;
 export declare function countdownActionbar(sec: number, pls: string[], actionbar: boolean, title?: string): Promise<boolean>;

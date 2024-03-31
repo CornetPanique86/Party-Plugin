@@ -39,9 +39,9 @@ export async function hikabrainstart(param: { option: string }, origin: CommandO
 
 // 0 = red; 1 = blue   string: playerName
 const teams = new Map<string, number>();
-const playerStats = new Map<string, { kills: number, goals: number }>();
+const playerStats = new Map<string, { kills: number, tempKills: number, goals: number }>();
 const points = [0, 0];
-const teamNames = ["§cRed", "§1Blue"];
+const teamNames = ["§cRed", "§bBlue"];
 const teamPos = ["-258 15 -237", "-222 15 -237"];
 
 function setup(pls: string[]) {
@@ -52,8 +52,8 @@ function setup(pls: string[]) {
     pls.forEach(pl => {
         bedrockServer.executeCommand(`tag "${pl}" add hikabrain`);
         teams.set(pl, teamCounter);
-        playerStats.set(pl, { kills: 0, goals: 0 });
-        teamCounter === 2 ? teamCounter = 0 : teamCounter++;
+        playerStats.set(pl, { kills: 0, tempKills: 0, goals: 0 });
+        teamCounter === 1 ? teamCounter = 0 : teamCounter++;
     });
 
     teams.forEach((value, key) => {
@@ -75,6 +75,10 @@ function addPoint(team: number, scorer: Player) {
     const scorerName = scorer.getNameTag();
     if (playerStats.has(scorerName)) playerStats.get(scorerName)!.goals++;
     points[team]++;
+
+    for (const value of playerStats.values()) { // Reset temp kills
+        value.tempKills = 0;
+    }
     if (points[team] === 5) {
         end(team);
     } else {
@@ -123,7 +127,7 @@ const scoreboardTitle = "§l§bHika§3brain";
 
 // §b §c §7
 function scoreboardUpdate() {
-    let ptsStr = ["§c[R] ", "§1[B] "];
+    let ptsStr = ["§c[R] ", "§b[B] "];
     for (let pts=0; pts<points.length; pts++) {
         for (let i=0; i<points[pts]; i++) {
             pts === 0 ? ptsStr[pts] += "" : ptsStr[pts] += "";
@@ -132,17 +136,14 @@ function scoreboardUpdate() {
             ptsStr[pts] += "";
         }
     }
-    const scoreContent: string[] = ["", ptsStr[0], ptsStr[1]];
+    const scoreContent: string[] = ["§r", ptsStr[0], ptsStr[1]];
     getHikabrainPlayers().forEach(pl => {
         const plName = pl.getNameTag();
         const plTeam = teams.get(plName);
         let plScoreContent = [...scoreContent];
         if (plTeam === 0 || plTeam === 1) plScoreContent.unshift("You are " + teamNames[plTeam]);
         const stats = playerStats.get(plName) || { kills: 0, goals: 0 };
-        if (playerStats.has(plName)) plScoreContent.push("", `Kills: §a${stats.kills}`, "Goals", "");
-        // if (playerStats.has(plName)) plScoreContent.push("", `Kills: §a${playerStats.get(plName)!.kills}`, `Goals: §a${playerStats.get(plName)!.goals}`);
-        console.log(playerStats.get(plName));
-        console.log(plScoreContent);
+        if (playerStats.has(plName)) plScoreContent.push("§r ", `Kills: §a${stats.kills}`, `Goals: §a${stats.goals}`);
         pl.setFakeScoreboard(scoreboardTitle, plScoreContent);
     });
 }
@@ -156,14 +157,12 @@ function scoreboardUpdatePl(pl: Player) {
             ptsStr[pts] += "";
         }
     }
-    const scoreContent: string[] = ["", ptsStr[0], ptsStr[1]];
+    const scoreContent: string[] = ["§r", ptsStr[0], ptsStr[1]];
     const plName = pl.getNameTag();
     const plTeam = teams.get(plName);
     if (plTeam === 0 || plTeam === 1) scoreContent.unshift("You are " + teamNames[plTeam]);
     const stats = playerStats.get(plName) || { kills: 0, goals: 0 };
-    if (playerStats.has(plName)) scoreContent.push("", `Kills: §a${stats.kills}`, `Goals: §a:(`);
-    // if (playerStats.has(plName)) plScoreContent.push("", `Kills: §a${playerStats.get(plName)!.kills}`, `Goals: §a${playerStats.get(plName)!.goals}`);
-    console.log(playerStats.get(plName));
+    if (playerStats.has(plName)) scoreContent.push("§r ", `Kills: §a${stats.kills}`, `Goals: §a${stats.goals}`);
     pl.setFakeScoreboard(scoreboardTitle, scoreContent);
 }
 
@@ -209,6 +208,7 @@ function end(w: number) {
 §7------------------`);
         if (teams.get(plName) === w) {
             pl.playSound("mob.pillager.celebrate", lobbyCoords);
+            bedrockServer.executeCommand(`playanimation "${plName}" animation.player.wincelebration a`);
             pl.sendTitle("§aYou won!");
             winnersStr += plName + ", ";
             return;
@@ -259,6 +259,7 @@ const gameIntervalObj = {
         const players = getHikabrainPlayers();
         for (const player of players) {
             if (player.getPosition().y < 0 || player.getPosition().y > 30) {
+                bedrockServer.executeCommand("tellraw @a[tag=hikabrain] " + rawtext(`§7${player.getNameTag()} fell into the void.`));
                 respawn(player);
             }
         }
@@ -436,11 +437,11 @@ const entityDieLis = (e: EntityDieEvent) => {
     if (e.entity.getIdentifier() !== "minecraft:player") return;
     if (!e.damageSource.getDamagingEntity()?.isPlayer()) return;
     const attacker = e.damageSource.getDamagingEntity() as Player;
-    const stats = playerStats.get(attacker.getNameTag()) || { kills: 0, goals: 0 };
-    stats.kills++;
+    const stats = playerStats.get(attacker.getNameTag()) || { kills: 0, tempKills: 0, goals: 0 };
+    stats.kills++; stats.tempKills++;
     playerStats.set(attacker.getNameTag(), stats);
     scoreboardUpdatePl(attacker);
-    if (stats.kills > 2) {
+    if (stats.tempKills > 2) {
         attacker.addEffect(MobEffectInstance.create(MobEffectIds.Strength, 5*20, 1));
         attacker.addEffect(MobEffectInstance.create(MobEffectIds.Speed, 5*20, 1));
         attacker.addEffect(MobEffectInstance.create(MobEffectIds.Haste, 5*20, 3));
@@ -454,6 +455,7 @@ const playerJoinLis = (e: PlayerJoinEvent) => {
         while (!pl.isPlayerInitialized()) {
             await new Promise(resolve => setTimeout(resolve, 1000)); // Tick delay to avoid server load
         }
+        scoreboardUpdatePl(pl);
         respawn(pl);
         bedrockServer.executeCommand("tellraw @a[tag=hikabrain] " + rawtext(`${pl.getNameTag()} §7reconnected.`));
     })();

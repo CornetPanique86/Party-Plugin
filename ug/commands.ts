@@ -12,6 +12,13 @@ import { bedrockServer } from "bdsx/launcher";
 import { isGameRunning } from ".";
 import { CommandResultType } from "bdsx/commandresult";
 import { hikabrainstart } from "./hikabrain";
+import { startKillsCountdown } from "./killscountdown";
+
+// tntrun: 14 5 516
+// koth: -121 4 21
+// block party: 104 4 -141
+// sumo: 233 8 482
+// pvp arena: 70 49 235
 
 // Bedwars
 command.register("bedwarsstart", "Hehehehe", CommandPermissionLevel.Operator)
@@ -28,7 +35,7 @@ command.register("bedwarsstart", "Hehehehe", CommandPermissionLevel.Operator)
             bedwarsstart(param, origin, output);
         },
         {
-            option: command.enum("option.stop", "stop"),
+            option: command.enum("option.stop", "stop")
         },
 );
 
@@ -47,8 +54,54 @@ command.register("hikabrainstart", "Hehehehebrain", CommandPermissionLevel.Opera
             hikabrainstart(param, origin, output);
         },
         {
-            option: command.enum("option.stop", "stop"),
+            option: command.enum("option.stop", "stop")
         },
+);
+
+command.register("killscountdown", "start da countdown!", CommandPermissionLevel.Operator)
+    .overload(
+        (param, origin, output) => {
+            const actor = origin.getEntity();
+            if (!actor?.isPlayer()) return;
+            startKillsCountdown("start", actor, param.timeInSeconds);
+        },
+        {
+            option: command.enum("option.start", "start"),
+            timeInSeconds: int32_t
+        },
+    )
+    .overload(
+        (param, origin, output) => {
+            const actor = origin.getEntity();
+            if (!actor?.isPlayer()) return;
+            startKillsCountdown("stop", actor);
+        },
+        {
+            option: command.enum("option.stop", "stop")
+        },
+    );
+
+enum GameLobbies {
+    Tntrun,
+    Koth,
+    Blockparty,
+    Sumo,
+    Pvparena,
+    Lobby
+}
+const gameLobbiesPos = [[14, 5, 516], [-121, 4, 21], [104, 4, -141], [233, 8, 482], [70, 49, 235], [0, 105, 0]];
+
+// Tp to game lobby
+command.register("tpgame", "Teleport to a minigame lobby", CommandPermissionLevel.Operator).overload(
+    (param, origin, output) => {
+        const actor = origin.getEntity();
+        if (!actor?.isPlayer()) return;
+        actor.teleport(Vec3.create(gameLobbiesPos[param.game][0], gameLobbiesPos[param.game][1], gameLobbiesPos[param.game][2]));
+        output.success("Teleported to " + param.game);
+    },
+    {
+        game: command.enum("game.action", GameLobbies)
+    },
 );
 
 // Join game queue
@@ -84,15 +137,30 @@ command.register("spectate", "Spectate the current game", CommandPermissionLevel
 );
 
 // test
-command.register("testp", "testing", CommandPermissionLevel.Operator).overload(
-    (param, origin, output) => {
-        test(param, origin, output);
-    },
-    {
-        action: command.enum("action.data", "data"),
-        value: int32_t
-    }
-);
+command.register("testp", "testing", CommandPermissionLevel.Operator)
+    .overload(
+        (param, origin, output) => {
+            const actor = origin.getEntity();
+            if (!actor?.isPlayer()) return;
+            actor.setSize(param.width, param.height);
+        },
+        {
+            option: command.enum("option.size", "size"),
+            width: int32_t,
+            height: int32_t
+        }
+    )
+    .overload(
+        (param, origin, output) => {
+            const actor = origin.getEntity();
+            if (!actor?.isPlayer()) return;
+            actor.setScale(param.scale);
+        },
+        {
+            option: command.enum("option.scale", "scale"),
+            scale: int32_t
+        }
+    );
 
 command.register("tpvec", "tp w vec3", CommandPermissionLevel.Operator).overload(
     (param, origin, output) => {

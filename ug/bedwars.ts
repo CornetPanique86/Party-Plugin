@@ -295,7 +295,8 @@ const genObj = {
     blockSource: 0 as unknown as BlockSource | undefined,
     ironSpawns: [[-1001, 68, -1038], [-1000, 68, -962], [-963, 68, -1000], [-1037, 68, -1000]],
     emeraldSpawns: [[-1001, 70, -1008], [-1007, 70, -1000], [-993, 70, -1001], [-1000, 70, -993]],
-    sec: 1,
+    secEmerald: 1,
+    secIron: 1,
     gen: function(){
         console.log("gen() called");
         this.blockSource = bedrockServer.level.getDimension(DimensionId.Overworld)?.getBlockSource();
@@ -307,7 +308,8 @@ const genObj = {
         this.interval = setInterval(() => this.intervalFunc(), 1000);
     },
     intervalFunc: function(){
-        for (let i = 0; i < this.ironSpawns.length; i++) {
+        if (this.secIron === 2) {
+            for (let i = 0; i < this.ironSpawns.length; i++) {
             const pos = Vec3.create(this.ironSpawns[i][0], this.ironSpawns[i][1], this.ironSpawns[i][2]);
             const itemActor = bedrockServer.level.getSpawner().spawnItem(
                 this.blockSource!,
@@ -316,8 +318,10 @@ const genObj = {
                 0.25
             );
             itemActor.teleport(pos);
+            }
+            this.secIron = 0;
         }
-        if (this.sec === 10) {
+        if (this.secEmerald === 30) {
             for (let i = 0; i < this.emeraldSpawns.length; i++) {
                 const pos = Vec3.create(this.emeraldSpawns[i][0], this.emeraldSpawns[i][1], this.emeraldSpawns[i][2]);
                 const itemActor = bedrockServer.level.getSpawner().spawnItem(
@@ -328,9 +332,10 @@ const genObj = {
                 );
                 itemActor.teleport(pos);
             }
-            this.sec = 0;
+            this.secEmerald = 0;
         }
-        this.sec++;
+        this.secEmerald++;
+        this.secIron++;
     },
     interval: 0 as unknown as NodeJS.Timeout,
     stop: function(){
@@ -477,7 +482,8 @@ function bedBreak(pl: string, team: number) {
     bedrockServer.executeCommand("tellraw @a[tag=bedwars] " + rawtext(`§l${teamNames[team]} bed §r§7was broken by §r${pl}§7!`, LogInfo.info));
     bedrockServer.level.getPlayers().forEach(player => {
         if (!player.hasTag("bedwars")) return;
-        player.playSound("mob.enderdragon.growl", undefined, 0.1);
+        player.playSound("mob.enderdragon.growl", player.getPosition(), 0.1);
+        if (teams[team].pls.includes(player.getNameTag())) player.sendTitle("§r", "§7>> §fBED §cDESTROYED §7<<");
     });
     let left = 0;
     teams[team].pls.forEach(pl1 => { if (!getPlayerByName(pl1)) left++ });
@@ -528,6 +534,7 @@ function end(w: number) {
     teams[w].pls.forEach((winner, index) => {
         winners.push(winner);
         index === teams[w].pls.length - 1 ? winnersStr += winner : winnersStr += winner + ", ";
+        bedrockServer.executeCommand(`playanimation "${winner}" animation.player.wincelebration a`);
     });
     bedrockServer.executeCommand("tellraw @a[tag=bedwars] " + rawtext(`
 §7==================
