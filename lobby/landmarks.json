@@ -1,0 +1,242 @@
+{
+    "trashCollectors": {
+        "pos": [0, -1, 0],
+        "title": "Trash Collectors",
+        "subtitle": "Lobby",
+        "author": "CornetPanique86",
+        "date": "04/12/2021",
+        "content": "The lobby for United Noobs' Trash Collectors map.\nThe project started the 17th of november 2021 and ended the 27th of december 2022, 4 days before the end of the #TeamSeas campaign."
+    },
+    "UGlobby": {
+        "pos": [22, 0, 0],
+        "title": "§bUlorium§3Games",
+        "subtitle": "Lobby",
+        "author": "Snowify",
+        "date": "06/09/2021-04/01/2022",
+        "content": "UloriumGames' new lobby, built entirely by Snowify, formerly everythingpro8 (with some help from EzraOcelot & endereyes202).\nTaking a couple months to build, it's the biggest project on the realm but thanks to Snowify's determination, he built a giant lobby with absolutely no compromises to quality and is without a doubt the best build on the realm.\nThank you, Snowify, for this iconic monument which has created so many memories, even if it was during the last moments. -CornetPanique86"
+    },
+    "UGctf": {
+        "pos": [17, 55, 69],
+        "title": "§bUlorium§3Games",
+        "subtitle": "Capture the Flag",
+        "author": "Robotdinosaur143",
+        "date": "14/06/2021",
+        "content": "Capture the Flag was a new minigame for UloriumGames. Robot started the project as a developper, but both Robot & Ezra built the map. The map was finished but not the code."
+    },
+    "UGkoth": {
+        "pos": [-175, 8, 106],
+        "title": "§bUlorium§3Games",
+        "subtitle": "King of the Hill",
+        "author": "CornetPanique86, Sam0312",
+        "date": "23/05/2021",
+        "content": "King of the Hill was a fairly new minigame. I believe Sam helped me with building the map."
+    },
+    "UGvolcano": {
+        "pos": [-84, 41, 141],
+        "title": "§bUlorium§3Games",
+        "subtitle": "Lobby volcano",
+        "author": "Snowify",
+        "date": "04/01/2022",
+        "content": "The volcano is in the corner of UloriumGames' new lobby. Built by Snowify, it took him a long time to complete because of the large variety of blocks for the volcano rocks and lava."
+    },
+    "UGweirdstatues": {
+        "pos": [-177, -22, 77],
+        "title": "§bUlorium§3Games",
+        "subtitle": "Weird statues",
+        "author": "unknown",
+        "date": "unknown",
+        "content": "The builder of these statues will remain a mystery..."
+    },
+    "parkourSimulator": {
+        "pos": [24, 8, -45],
+        "title": "§bParkour §eSimulator §c[4]",
+        "subtitle": "Easier Tower level",
+        "author": "unstoppable turtle",
+        "date": "19/08/2020",
+        "content": "A map built by unstoppable turtle which I speedran on YouTube (and that started our friendship hehe)."
+    },
+    "europeMap": {
+        "pos": [-7, -20, 22],
+        "title": "Huge Minecraft Europe Flag Map",
+        "subtitle": "UK & Ireland",
+        "author": "Snowify",
+        "date": "03/03/2024",
+        "content": "Once again another demonstration of Snowify's determination, as he manually built a 1:50 Flag map of Europe and later the whole world!"
+    },
+    "axmnAddon": {
+        "pos": [-19, 0, -41],
+        "title": "AXMN's Cursed addon",
+        "subtitle": "Bedrock playthrough",
+        "author": "Onemason128",
+        "date": "29/01/2022",
+        "content": "Cornet, Robot and justAsh tried to beat AXMN's cursed addon on Bedrock (we gave up at the nether stage)."
+    },
+    "MCLH": {
+        "pos": [-41, 90, -65],
+        "title": "Minecraft's Loneliest House",
+        "subtitle": "Center portion",
+        "author": "Person321",
+        "date": "26/02/2023",
+        "content": "Minecraft's Loneliest House is Person's most viewed video, and with the 10+ hours it took to build, it was Person's introduction to world edit and according to him he had fun throughout the whole journey. It is definitely the most impressive build you get to see today.\n§oAnd thanks for the world download even though I didn't boost the server! -CornetPanique86"
+    },
+    "FRSlapEiffel": {
+        "pos": [-43, -2, 0],
+        "title": "§9F§fr§ce§9n§fc§ch §fSlap",
+        "subtitle": "Eiffel tower (lobby)",
+        "author": "SmellyJelly",
+        "date": "28/07/2020-30/07/2020",
+        "content": "The eiffel tower in French Slap's lobby was built by SmellyJelly, EzraOcelot, endereyes202 and maybe some other people.\nFun fact: the idea came with Ezra posting the GIF \"FBI OPEN UP\", then me typing \"French Baguette Insult\", then Alex typing \"baguette pvp\" which gave me the idea to make such a map."
+    },
+    "FRSlapMap": {
+        "pos": [11, 35, -36],
+        "title": "§9F§fr§ce§9n§fc§ch §fSlap",
+        "subtitle": "Map 1",
+        "author": "SmellyJelly, EzraOcelot",
+        "date": "28/07/2020",
+        "content": "My attempt at building the map was horrendous, so thankfully SmellyJelly & EzraOcelot built a beautiful croissant and cheese."
+    },
+    "UNrealmBlob": {
+        "pos": [-8, 68, -89],
+        "title": "UnitedNoobs Realm",
+        "subtitle": "SUB2 XXL Steve world",
+        "author": "CornetPanique86",
+        "date": "20/10/2020",
+        "content": "I simply built this with a new world edit addon I wanted to try. The realm staid in this state for months..."
+    },
+    "UNrealmLobby": {
+        "pos": [-36, -2, -115],
+        "title": "UnitedNoobs Realm",
+        "subtitle": "Kill or Treat (lobby)",
+        "author": "EzraOcelot, justAsh01234",
+        "date": "20/10/2020",
+        "content": "The lobby for a new UnitedNoobs project which was never finished, called Kill or Treat.\nThe concept was:\nThe kids spawn in the garden of a giant halloween mansion. They have to enter it and find 5 candies randomly hidden in the mansion. The adults are the house owners, they have to prevent the kids from taking the candies in the house. Adults can 2-hit kill the kids."
+    },
+    "UNfranch": {
+        "pos": [-127, 60, 183],
+        "title": "UnitedNoobs Realm",
+        "subtitle": "English VS Franch",
+        "author": "EzraOcelot, CornetPanique86",
+        "date": "December 2020",
+        "content": "Ezra started by building the English flag killing the French, and I reversed it."
+    },
+    "UNtoilet": {
+        "pos": [-46, 15, 246],
+        "title": "UnitedNoobs Realm",
+        "subtitle": "Toilet battle",
+        "author": "EzraOcelot",
+        "date": "24/12/2020",
+        "content": "I had the idea of making a bedwars-like game called Toilet battle/wars. Ezra built this very well-made toilet as a base but eventually I abandoned the project :("
+    },
+    "gofinTrain": {
+        "pos": [29, 2, 30],
+        "title": "Rennes' Néoval",
+        "subtitle": "Cityval version",
+        "author": "GofinBest",
+        "date": "09/09/2023",
+        "content": "Some very interesting insight from Gofin:\nThis light automatic metro is a Cityval, the urban version of the Néoval, the Néoval itself being a recent derivative of the VAL, the light automatic vehicle, which originated in Lille under the original name \"Villeneuve d'Ascq - Lille\", which gave rise to the acronym VAL. The VAL would later give rise to the Rennes and Toulouse metro systems, as well as airport connections to the two Paris airports (CDG-Val at Roissy and Orlyval at Orly), and also to Chicago's O'Hare airport. Today, the Cityval version of Néoval only exists in Rennes, and the Airval, the airport version of Néoval, is used in two airports worldwide.\nAs for the technical details of the Néoval, unlike the original VAL, the treads are made of concrete (whereas the pneumatic treads of the VAL and all automatic metros in general are made of steel, like conventional pneumatic metros) and guidance is provided by the metal strip in the center (like a Translohr or TVR, which are both globally guided buses). As a result, the Néoval is perceived by some railway enthusiasts as a guided bus on its own right-of-way."
+    },
+    "WSMPElevator": {
+        "pos": [16, 24, 83],
+        "title": "One Island SMP",
+        "subtitle": "Boat elevator",
+        "author": "CornetPanique86",
+        "date": "2022",
+        "content": "This is truly a technical marvel of engineering. That a redstone beginner managed to imagine such a complex and intricate system is a testament to Cornet's brain size."
+    },
+    "WSMPmetro": {
+        "pos": [16, -1, 44],
+        "title": "One Island SMP",
+        "subtitle": "Metro",
+        "author": "Gofinmassim1",
+        "date": "2022",
+        "content": "Gofin was the main builder and ice miner of the One Island SMP metro - or in other words, the skeleton to the society allowing fast and secure transportation from and to various points around the continent like the stronghold or Mt. Cornet."
+    },
+    "WSMPdanoobtower": {
+        "pos": [20, 58, 153],
+        "title": "One Island SMP",
+        "subtitle": "da noob tower",
+        "author": "Grien jumbo",
+        "date": "2022",
+        "content": "Grumbo's signature; da noob tower is a tower he builds in every occasion. Caracterized by its cheap exterior made of common blocks, it is in reality what constitutes its natural beauty.\nIt's also home to Grumbo's and Gofin's hundreds of deaths."
+    },
+    "WSMPtownhall": {
+        "pos": [-107, -14, -10],
+        "title": "One Island SMP",
+        "subtitle": "Center",
+        "author": "The SMP's members",
+        "date": "2022",
+        "content": "The town hall, endereyes202's base amongst other builds are featured here."
+    },
+    "WSMPnether": {
+        "pos": [-31, -12, -2],
+        "title": "One Island SMP",
+        "subtitle": "Nether hub",
+        "author": "Robotdinosaur143",
+        "date": "18/12/2022",
+        "content": "The SMP's nether hub built by Robotdinosaur143, with plans for each tunnel having its own custom theme."
+    },
+    "CCMPexpo": {
+        "pos": [82, 1, 88],
+        "title": "Cornet CMP",
+        "subtitle": "Soft city / Expo 4040",
+        "author": "TBG Bros2021, Grien jumbo",
+        "date": "18/01/2023-26/12/2023",
+        "content": "Soft city's Expo 4040 district is a giant project worth the visit in Cornet CMP. Built by only TBG and Grumbo, it spans over a large area of the city. With housing, shops and fun activities, there is a lot to explore.\nThis monument is the Expo 4040 stage, which in its original version has a whole system of animating the panel, fireworks and songs."
+    },
+    "CCMPexpobridge": {
+        "pos": [-150, -2, 8],
+        "title": "Cornet CMP",
+        "subtitle": "Soft city / Expo water bridge",
+        "author": "Grien jumbo",
+        "date": "30/12/2023",
+        "content": "A beautiful modern bridge in Soft city's Expo district."
+    },
+    "CCMPtrivalea": {
+        "pos": [-177, 8, -158],
+        "title": "Cornet CMP",
+        "subtitle": "Trivalean Parliament",
+        "author": "Onemason128",
+        "date": "December 2022",
+        "content": "A huge building project started by axmn. The Trivalean Parliament is in the heart of the Trivalean Union, and is still in progress."
+    },
+    "HSMPenglish": {
+        "pos": [-37, -9, 31],
+        "title": "Hardcore SMP",
+        "subtitle": "English base",
+        "author": "EzraOcelot",
+        "date": "August 2023",
+        "content": "The English team's base was built by Ezra during Robot's hardcore SMP event. Cornet unfortunately found it but all its precious items were stashed before his arrival."
+    },
+    "HSMPfrench": {
+        "pos": [-36, -16, 103],
+        "title": "Hardcore SMP",
+        "subtitle": "French base",
+        "author": "Origaming_",
+        "date": "04/08/2023",
+        "content": "The French team's base was entirely built by Origaming_, maybe with some help from Sierradiateur & Swag2poul. His survival expertise allowed him to create a villager trading hall and adorn the base with gold blocks. It was later found by Person and griefed by the English team."
+    },
+    "Noxcity": {
+        "pos": [-79, 69, -2],
+        "title": "§1Nox§fCi§4ty",
+        "subtitle": "Airplane",
+        "author": "NanoVisionJ2C",
+        "date": "2019",
+        "content": "Probably built by NanoVisionJ2C/Valorix/Nesoxis."
+    },
+    "flan": {
+        "pos": [-89, -7, -51],
+        "title": "Flan's survival world",
+        "subtitle": "Underground base",
+        "author": "Flan",
+        "date": "11/09/2023",
+        "content": "A base flan built in survival."
+    },
+    "CSMPkoshary": {
+        "pos": [-175, 8, 53],
+        "title": "Cornet SMP Season 6",
+        "subtitle": "Koshary empire",
+        "author": "endereyes202",
+        "date": "2024",
+        "content": "What are for now the only builds in Koshary's empire, but what will hopefully be the historical building blocks of the empire in the future!"
+    }
+}

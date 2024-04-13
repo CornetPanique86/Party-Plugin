@@ -2,7 +2,7 @@ import { CommandOutput } from "bdsx/bds/command";
 import { CommandOrigin } from "bdsx/bds/commandorigin";
 import { bedrockServer } from "bdsx/launcher";
 import { LogInfo, rawtext } from "..";
-import { countdownActionbar, createCItemStack, getPlayerByName, spectate, spectateStop, startGame, stopGame } from "./utils";
+import { countdownActionbar, getPlayerByName, spectate, spectateStop, startGame, stopGame } from "./utils";
 import { Games, lobbyCoords } from ".";
 import { EnchantmentNames } from "bdsx/bds/enchants";
 import { CompoundTag, NBT } from "bdsx/bds/nbt";
@@ -17,6 +17,7 @@ import { BlockActor, BlockActorType, BlockSource } from "bdsx/bds/block";
 import { GameType, Player } from "bdsx/bds/player";
 import { nativeClass, nativeField } from "bdsx/nativeclass";
 import { int32_t } from "bdsx/nativetype";
+import { createCItemStack } from "../utils";
 
 
 enum BedColor {

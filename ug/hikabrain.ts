@@ -2,9 +2,9 @@ import { CommandOutput } from "bdsx/bds/command";
 import { CommandOrigin } from "bdsx/bds/commandorigin";
 import { bedrockServer } from "bdsx/launcher";
 import { LogInfo, rawtext } from "..";
-import { countdownActionbar, createCItemStack, startGame, stopGame } from "./utils";
+import { countdownActionbar, startGame, stopGame } from "./utils";
 import { Games, lobbyCoords } from ".";
-import { Player, ServerPlayer } from "bdsx/bds/player";
+import { Player } from "bdsx/bds/player";
 import { AbilitiesIndex } from "bdsx/bds/abilities";
 import { events } from "bdsx/event";
 import { EntityDieEvent, PlayerAttackEvent, PlayerJoinEvent, PlayerLeftEvent, PlayerRespawnEvent } from "bdsx/event_impl/entityevent";
@@ -13,6 +13,7 @@ import { CANCEL } from "bdsx/common";
 import { CompoundTag, NBT } from "bdsx/bds/nbt";
 import { ItemStack } from "bdsx/bds/inventory";
 import { MobEffectIds, MobEffectInstance } from "bdsx/bds/effects";
+import { createCItemStack } from "../utils";
 
 export async function hikabrainstart(param: { option: string }, origin: CommandOrigin, output: CommandOutput) {
     // /hikabrainstart stop
@@ -256,6 +257,10 @@ const gameIntervalObj = {
         this.interval = setInterval(() => this.intervalFunc(), 200);
     },
     intervalFunc: function() {
+        if (bedrockServer.isClosed()) {
+            this.stop;
+            return;
+        }
         const players = getHikabrainPlayers();
         for (const player of players) {
             if (player.getPosition().y < 0 || player.getPosition().y > 30) {
@@ -489,6 +494,3 @@ function stopListeners() {
     events.playerJoin.remove(playerJoinLis);
     events.playerLeft.remove(playerLeftLis);
 }
-events.serverClose.on(() => {
-    gameIntervalObj.stop();
-})

@@ -5,8 +5,6 @@ import { Games, isGameRunning, lobbyCoords } from ".";
 import { CommandOrigin } from "bdsx/bds/commandorigin";
 import { CommandOutput } from "bdsx/bds/command";
 import { LogInfo, rawtext } from "..";
-import { ItemStack } from "bdsx/bds/inventory";
-import { EnchantUtils, EnchantmentNames } from "bdsx/bds/enchants";
 import { Vec3 } from "bdsx/bds/blockpos";
 import { MobEffectIds, MobEffectInstance } from "bdsx/bds/effects";
 import { AbilitiesIndex } from "bdsx/bds/abilities";
@@ -21,32 +19,6 @@ export function getPlayerByName(name: string): Player | null {
         if (plList[i].getNameTag() === name) return plList[i]
     }
     return null;
-}
-
-type ItemDesc = {
-    item: string,
-    amount?: number,
-    data?: number,
-    name?: string,
-    lore?: string[],
-    enchantment?: {
-        enchant: EnchantmentNames,
-        level: number,
-        isUnsafe: boolean
-    }
-}
-
-export function createCItemStack(item: ItemDesc) {
-    const i = ItemStack.constructWith(item.item, item.amount, item.data);
-    if (item.name !== undefined) i.setCustomName(item.name);
-    if (item.lore !== undefined) i.setCustomLore(item.lore);
-    if (item.enchantment !== undefined) {
-        if (item.enchantment.level > 32767) item.enchantment.level = 32767;
-        if (item.enchantment.level < -32767) item.enchantment.level = -32767;
-        EnchantUtils.applyEnchant(i, item.enchantment.enchant, item.enchantment.level, item.enchantment.isUnsafe);
-    }
-
-    return i;
 }
 
 let tpSpot: Vec3;

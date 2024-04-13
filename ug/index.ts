@@ -77,4 +77,4 @@ events.playerJoin.on(e => {
         bedrockServer.executeCommand(`clear ${pl.getNameTag()}`);
         pl.teleport(Vec3.create(0, 105, 0));
     }
-})
+});
