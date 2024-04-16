@@ -1,12 +1,11 @@
 import { CommandOutput, CommandPermissionLevel } from "bdsx/bds/command";
 import { command } from "bdsx/command";
-import { landmarksASReset, landmarksList, landmarksReset, lobbyCoords, plLeavePk, reloadLandmarksVar } from ".";
+import { landmarksASReset, landmarksReset, lobbyCoords, plLeavePk, reloadLandmarksVar } from ".";
 import { bedrockServer } from "bdsx/launcher";
 import { DimensionId } from "bdsx/bds/actor";
-import { PlayerPermission } from "bdsx/bds/player";
 import { MobEffectIds } from "bdsx/bds/effects";
 import { Vec3 } from "bdsx/bds/blockpos";
-import { isTimelineRunning } from "./timeline";
+import { isTimelineRunning, startTimeline, stopTimeline } from "./timeline";
 
 
 // /spawn
@@ -55,30 +54,11 @@ command.register("parkour", "Parkour commands", CommandPermissionLevel.Normal)
     );
 
 // /landmarks
-command.register("landmarks", "Manage landmarks", CommandPermissionLevel.Normal)
-    .overload(
-        async (param, origin, output) => {
-            const actor = origin.getEntity();
-            if (!actor?.isPlayer()) return;
-            if (actor.hasTag("landmarksListCooldown")) {
-                output.error("This command is on cooldown for 15 seconds!");
-                return;
-            }
-            actor.addTag("landmarksListCooldown");
-            output.success(await landmarksList(actor));
-            setTimeout(() => {
-                if (actor.isNotNull()) actor.removeTag("landmarksListCooldown");
-            }, 15*1000);
-        },
-        {
-            list: command.enum("option.list", "list")
-        }
-    )
+command.register("landmarks", "Manage landmarks", CommandPermissionLevel.Operator)
     .overload(
         (param, origin, output) => {
             const actor = origin.getEntity();
             if (!actor?.isPlayer()) return;
-            if (actor.getPermissionLevel() !== PlayerPermission.OPERATOR) output.error("Only operators can run the 'config' subcommand!");
             output.success(landmarksReset());
         },
         {
@@ -90,7 +70,6 @@ command.register("landmarks", "Manage landmarks", CommandPermissionLevel.Normal)
         (param, origin, output) => {
             const actor = origin.getEntity();
             if (!actor?.isPlayer()) return;
-            if (actor.getPermissionLevel() !== PlayerPermission.OPERATOR) output.error("Only operators can run the 'config' subcommand!");
             output.success(landmarksASReset());
         },
         {
@@ -102,7 +81,6 @@ command.register("landmarks", "Manage landmarks", CommandPermissionLevel.Normal)
         (param, origin, output) => {
             const actor = origin.getEntity();
             if (!actor?.isPlayer()) return;
-            if (actor.getPermissionLevel() !== PlayerPermission.OPERATOR) output.error("Only operators can run the 'config' subcommand!");
             output.success(reloadLandmarksVar());
         },
         {
@@ -117,19 +95,61 @@ command.register("timeline", "hehehehehehe", CommandPermissionLevel.Operator)
         (param, origin, output) => {
             const actor = origin.getEntity();
             if (!actor?.isPlayer()) return;
-
+            startTimeline();
         },
         {
             start: command.enum("option.start", "start")
-        },
+        }
     )
     .overload(
         (param, origin, output) => {
             const actor = origin.getEntity();
             if (!actor?.isPlayer()) return;
-
+            stopTimeline();
         },
         {
             stop: command.enum("option.stop", "stop")
+        }
+    )
+    .overload(
+        async (param, origin, output) => {
+            const actor = origin.getEntity();
+            if (!actor?.isPlayer()) return;
+            actor.runCommand("fill -1 48 -1 -1 51 1 air");
+
+            for (let i=0; i<10; i++) {
+                // -1 48 -1
+                const x = -0.5,
+                      y = 48,
+                      zL = -0.5,
+                      zR = 1.5;
+                let Y = y,
+                    ZL = zL,
+                    ZR = zR;
+                const dim = bedrockServer.level.getDimension(DimensionId.TheEnd);
+                if (!dim) {
+                    actor.sendMessage("§cDimension not registered");
+                    return;
+                }
+                while (Y < 51.8) {
+                    bedrockServer.level.spawnParticleEffect("minecraft:endrod", Vec3.create(x, Y, ZL), dim);
+                    bedrockServer.level.spawnParticleEffect("minecraft:endrod", Vec3.create(x, Y, ZR), dim);
+                    Y += 0.1;
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                }
+                while (ZL < 0.5) {
+                    bedrockServer.level.spawnParticleEffect("minecraft:endrod", Vec3.create(x, Y, ZL), dim);
+                    bedrockServer.level.spawnParticleEffect("minecraft:endrod", Vec3.create(x, Y, ZR), dim);
+                    ZL += 0.1;
+                    ZR -= 0.1;
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                }
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+
+            actor.sendMessage("Success");
         },
+        {
+            free: command.enum("option.free", "free")
+        }
     );

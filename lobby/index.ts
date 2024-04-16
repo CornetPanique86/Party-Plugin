@@ -3,7 +3,7 @@ import { logPrefix, rawtext } from "..";
 import "./commands";
 import { events } from "bdsx/event";
 import { CANCEL } from "bdsx/common";
-import { Actor, ActorDamageCause, ActorDamageSource, ActorDefinitionIdentifier, ActorType, DimensionId } from "bdsx/bds/actor";
+import { Actor, ActorDamageCause, ActorDefinitionIdentifier, ActorType, DimensionId } from "bdsx/bds/actor";
 import { createCItemStack } from "../utils";
 import { readFileSync } from "fs";
 import { join } from "path";
@@ -68,6 +68,7 @@ export function landmarksASReset():string {
 }
 
 events.playerJoin.on(async e => {
+    if (isTimelineRunning) return;
     const pl = e.player;
     if (pl.hasTag("admin")) return;
 
@@ -75,7 +76,6 @@ events.playerJoin.on(async e => {
         pl.removeTag("parkour");
         pl.removeTag("parkourElytra");
     }
-    pl.removeTag("landmarksListCooldown");
 
     pl.runCommand("clear");
     const item = createCItemStack({
@@ -131,21 +131,6 @@ async function playerInteractLis(e: PlayerInteractEvent) {
 events.playerInteract.onAfter(e => {
     if (e.victim.getEntityTypeId() === ActorType.ArmorStand) return CANCEL;
 }, playerInteractLis);
-
-export async function landmarksList(pl: Player) {
-    const db = await storageManager.get<string[]>(pl);
-    if (!db.isLoaded) return;
-    if (db.data === undefined) {
-        // Initialize player storage
-        db.init([]);
-    }
-    const list: string[] = db.data;
-    let outStr = `§aDiscovered landmarks §7(§f${list.length}/30§7)§a:`
-    for (const landmark of list) {
-        outStr += `\n§7- §f${landmarks[landmark].title} §r(${landmarks[landmark].subtitle}§r)`
-    }
-    return outStr;
-}
 
 
 function millisToMinutesAndSeconds(millis: number) {
@@ -368,6 +353,10 @@ events.entityHurt.on(e => {
     const pl = e.entity;
     if (e.damageSource.cause === ActorDamageCause.Fall && pl.hasTag("parkour")) return CANCEL;
 });
+
+events.playerAttack.on(() => {
+    return CANCEL;
+})
 
 events.chestOpen.on(() => {
     return CANCEL;
