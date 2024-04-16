@@ -6,6 +6,8 @@ import { DimensionId } from "bdsx/bds/actor";
 import { MobEffectIds } from "bdsx/bds/effects";
 import { Vec3 } from "bdsx/bds/blockpos";
 import { isTimelineRunning, startTimeline, stopTimeline } from "./timeline";
+import { PlayerPermission } from "bdsx/bds/player";
+import { int32_t } from "bdsx/nativetype";
 
 
 // /spawn
@@ -90,14 +92,56 @@ command.register("landmarks", "Manage landmarks", CommandPermissionLevel.Operato
     );
 
 // /timeline
-command.register("timeline", "hehehehehehe", CommandPermissionLevel.Operator)
+const timelineTpCooldown = new Map<string, Date>();
+command.register("timeline", "hehehehehehe", CommandPermissionLevel.Normal)
+    .overload(
+        (param, origin, output) => {
+            if (!isTimelineRunning) return output.error("This command is only available while the timeline is enabled");
+            const actor = origin.getEntity();
+            if (!actor?.isPlayer()) return;
+            const name = actor.getNameTag();
+            if (!timelineTpCooldown.has(name))
+                timelineTpCooldown.set(name, new Date());
+            else if (Number(new Date()) - Number(timelineTpCooldown.get(name)) < 1000)
+                return output.error("This command is on cooldown for 1 second");
+            else {
+                timelineTpCooldown.set(name, new Date());
+            }
+
+            const { year, month, day } = param;
+            if (year < 2019 || year > 2024) return output.error("Year has to be between 2019 and 2024");
+            if (month < 1 || month > 12) return output.error("Um there are only 12 months in a year... so put a number between 1 and 12");
+            if (day < 0 || day > 31) return output.error("Day has to be between 1 and 31");
+            if (year === 2019 && month < 7) return output.error("Date has to be after July 12th 2019");
+            if (year === 2019 && month === 7 && day < 12) return output.error("Date has to be after July 12th 2019");
+            if (year === 2024 && month > 3) return output.error("Date has to be before March 29th 2024");
+            if (year === 2024 && month === 3 && day > 29) return output.error("Date has to be before March 29th 2024");
+
+            const mills = new Date(Date.UTC(year, month - 1, day));
+            const deltaMills = mills.getTime() - 1562889600000;
+            const days = Math.floor(deltaMills / (24 * 60 * 60 * 1000));
+            const x = days*3;
+            actor.teleport(Vec3.create(x, 48, 0), DimensionId.TheEnd);
+        },
+        {
+            tp: command.enum("option.tp", "tp"),
+            year: int32_t,
+            month: int32_t,
+            day: int32_t
+        }
+    )
     .overload(
         (param, origin, output) => {
             const actor = origin.getEntity();
             if (!actor?.isPlayer()) return;
+            if (actor.getPermissionLevel() !== PlayerPermission.OPERATOR) {
+                output.error("Only operators can run the 'config' subcommand!");
+                return;
+            }
             startTimeline();
         },
         {
+            config: command.enum("option.config", "config"),
             start: command.enum("option.start", "start")
         }
     )
@@ -105,9 +149,14 @@ command.register("timeline", "hehehehehehe", CommandPermissionLevel.Operator)
         (param, origin, output) => {
             const actor = origin.getEntity();
             if (!actor?.isPlayer()) return;
+            if (actor.getPermissionLevel() !== PlayerPermission.OPERATOR) {
+                output.error("Only operators can run the 'config' subcommand!");
+                return;
+            }
             stopTimeline();
         },
         {
+            config: command.enum("option.config", "config"),
             stop: command.enum("option.stop", "stop")
         }
     )
@@ -115,7 +164,12 @@ command.register("timeline", "hehehehehehe", CommandPermissionLevel.Operator)
         async (param, origin, output) => {
             const actor = origin.getEntity();
             if (!actor?.isPlayer()) return;
+            if (actor.getPermissionLevel() !== PlayerPermission.OPERATOR) {
+                output.error("Only operators can run the 'config' subcommand!");
+                return;
+            }
             actor.runCommand("fill -1 48 -1 -1 51 1 air");
+            actor.runCommand("fill -13 48 -1 -13 51 1 air");
 
             for (let i=0; i<10; i++) {
                 // -1 48 -1
@@ -150,6 +204,7 @@ command.register("timeline", "hehehehehehe", CommandPermissionLevel.Operator)
             actor.sendMessage("Success");
         },
         {
+            config: command.enum("option.config", "config"),
             free: command.enum("option.free", "free")
         }
     );

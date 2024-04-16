@@ -127,6 +127,14 @@
         "date": "24/12/2020",
         "content": "I had the idea of making a bedwars-like game called Toilet battle/wars. Ezra built this very well-made toilet as a base but eventually I abandoned the project :("
     },
+    "UNspleef": {
+        "pos": [-88, 3, -96],
+        "title": "UnitedNoobs",
+        "subtitle": "A Little Simple Spleef Game",
+        "author": "CornetPanique86",
+        "date": "27/07/2020",
+        "content": "UnitedNoobs' 2nd map. Built by CornetPanique86 and a random Xbox friend that is yet to be identified."
+    },
     "gofinTrain": {
         "pos": [29, 2, 30],
         "title": "Rennes' Néoval",
@@ -238,5 +246,13 @@
         "author": "endereyes202",
         "date": "2024",
         "content": "What are for now the only builds in Koshary's empire, but what will hopefully be the historical building blocks of the empire in the future!"
+    },
+    "boomerangsumo": {
+        "pos": [6, -1, -85],
+        "title": "Boomerang",
+        "subtitle": "Sumo",
+        "author": "endereyes202",
+        "date": "05/06/2021",
+        "content": "Boomerang's first map! A simple sumo free for all.\n- endereyes: builder, command blocks\n- sinatheking: builder\n- KARL849: builder\n- CornetPanique86: command blocks"
     }
 }

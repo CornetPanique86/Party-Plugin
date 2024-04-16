@@ -11,9 +11,17 @@ const timelineSpawn = Vec3.create(-6.5, 48, 0.5);
 
 export function startTimeline() {
     bedrockServer.executeCommand("clear @a red_dye");
+    const speedBoots = createCItemStack({
+        item: "iron_boots",
+        name: "§r§fSpeed §iboots"
+    });
     bedrockServer.level.getPlayers().forEach(pl => {
         pl.teleport(timelineSpawn, DimensionId.TheEnd);
+
+        pl.addItem(speedBoots);
+        pl.sendInventory();
     });
+    speedBoots.destruct();
     startListeners();
     gameIntervalObj.init();
     isTimelineRunning = true;
@@ -33,6 +41,7 @@ export function stopTimeline() {
         pl.getInventory().swapSlots(0, 8);
         pl.sendInventory();
     });
+    bedrockServer.executeCommand("clear @a iron_boots");
     isTimelineRunning = false;
 }
 
@@ -61,6 +70,10 @@ const gameIntervalObj = {
             return;
         }
         bedrockServer.level.getPlayers().forEach(pl => {
+            if (pl.getPosition().x > 5170) {
+                pl.sendActionbar("?§k?§r? E§kr§rror§k:§r da§kt§re u§kn§rkn§ko§rwn ?§k?§r?");
+                return;
+            }
             if (pl.getPosition().x < 0) return;
             const x = Math.floor(pl.getPosition().x / 3);
             const dateInMil = x * 86400000 + 1562889600000; // Millis in a day  +  12th jul 2019 (DragonNest birth)
@@ -76,4 +89,4 @@ const gameIntervalObj = {
 
 events.serverClose.on(() => {
     gameIntervalObj.stop();
-})
+});

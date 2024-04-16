@@ -18,6 +18,12 @@ import { isTimelineRunning } from "./timeline";
 
 export const lobbyCoords: Vec3 = Vec3.create(0.5, -2, 0.5);
 
+const pkTimes = storageManager.getSync<StoragePkTimes>("pkTimes");
+if (pkTimes.data === undefined) {
+    // initialize
+    pkTimes.init({});
+}
+
 console.log(logPrefix + "Lobby plugin loaded");
 
 let landmarks:any;
@@ -109,7 +115,7 @@ async function playerInteractLis(e: PlayerInteractEvent) {
     let status: boolean = false;
     if (!discoveredLandmarks.includes(key)) { // Just discovered
         discoveredLandmarks.push(key);
-        pl.sendMessage(`§aYou found the §l§f${landmark.title} §r§f(${landmark.subtitle}§f) §alandmark! §f${discoveredLandmarks.length}§7/§f30`);
+        pl.sendMessage(`§aYou found the §l§f${landmark.title} §r§f(${landmark.subtitle}§f) §alandmark! §f${discoveredLandmarks.length}§7/§f32`);
         pl.playSound("random.levelup");
         status = true;
     }
@@ -146,19 +152,15 @@ function millisToMinutesAndSeconds(millis: number) {
 }
 
 type StoragePkTimes = {
-    [player: string]: number;
+    [player: string]: number
 }
-async function storePkTime(plName: string, time: number) {
-    const pkTimes = await storageManager.get<StoragePkTimes>("pkTimes");
-    if (pkTimes.data === undefined) {
-        // initialize
-        pkTimes.init({});
-    }
+function storePkTime(plName: string, time: number) {
     if (pkTimes.data[plName] < time) return; // Not a high score
     pkTimes.data[plName] = time;
 
     bedrockServer.executeCommand("hologram remove pkLb");
-    const sortedTimes: [string, number][] = Object.entries(pkTimes.data);
+    const times = JSON.parse(JSON.stringify(pkTimes.data)); // Deep copy = no referencing
+    const sortedTimes: [string, number][] = Object.entries(times);
 
     // Sort the array based on the values (ascending order)
     sortedTimes.sort((a, b) => a[1] - b[1]);
@@ -167,8 +169,6 @@ async function storePkTime(plName: string, time: number) {
         lbStr += `\n§7${index+1}. §f${value[0]} §8- §6${millisToMinutesAndSeconds(value[1])}`
     });
     bedrockServer.executeCommand(`hologram create raw pkLb ${rawtext(lbStr)} 11 0 9`);
-
-    storageManager.close("pkTimes");
 }
 
 let ticks = 0;
@@ -177,11 +177,16 @@ const startPkPos = [15, 0, 8],
       checkpoint1 = [7, 35, -40],
       checkpoint2 = [-46, 96, -68];
 const plPkTime = new Map<Player, [number, number, number]>(); // [time, elytraLoops, checkpoint]
+
 const tickInterval = setInterval(() => {
-    if (isTimelineRunning) return;
     ticks++;
 
     bedrockServer.level.getPlayers().forEach(pl => {
+        // SPEED BOOTS
+        if (pl.getArmor(ArmorSlot.Feet).getName() === "minecraft:iron_boots")
+            pl.addEffect(MobEffectInstance.create(MobEffectIds.Speed, 5, 15, false, false, false));
+
+        if (isTimelineRunning) return;
         const pos = pl.getPosition();
         if (pl.hasTag("parkour") && pl.isPlayerInitialized()) {
             if (!plPkTime.has(pl)) return;
@@ -209,7 +214,15 @@ const tickInterval = setInterval(() => {
                     pl.runCommand("clear @s light_weighted_pressure_plate");
                     pl.runCommand("clear @s wooden_door");
                     pl.runCommand("clear @s iron_door");
-                    pl.addEffect(MobEffectInstance.create(MobEffectIds.SlowFalling, 20*30));
+                    pl.addEffect(MobEffectInstance.create(MobEffectIds.SlowFalling, 20*15));
+
+                    const speedBoots = createCItemStack({
+                        item: "iron_boots",
+                        name: "§r§fSpeed §iboots"
+                    });
+                    pl.addItem(speedBoots);
+                    pl.sendInventory();
+                    speedBoots.destruct();
                 }
             } else if (floorPos.x === checkpoint1[0] && (floorPos.y - 1) === checkpoint1[1] && floorPos.z  === checkpoint1[2]) { // CHECKPOINT 1
                 if (checkpoint === 0) {
@@ -259,14 +272,18 @@ const tickInterval = setInterval(() => {
                 return;
             } else if ((floorPos.x < -28 && floorPos.x > -33) && (floorPos.y < 101 && floorPos.y > 97) && (floorPos.z > -67 && floorPos.z < -62)) {
                 // Player enters elytra section
-                const elytra = createCItemStack({
-                    item: "elytra",
-                    amount: 1,
-                    lore: ["Go through all 3 loops!"]
-                });
-                pl.setArmor(ArmorSlot.Chest, elytra);
-                pl.sendMessage("§l§6> §r§eGo through all 3 loops!");
-                pl.addTag("parkourElytra");
+                if (checkpoint === 2) {
+                    const elytra = createCItemStack({
+                        item: "elytra",
+                        amount: 1,
+                        lore: ["Go through all 3 loops!"]
+                    });
+                    pl.setArmor(ArmorSlot.Chest, elytra);
+                    pl.sendMessage("§l§6> §r§eGo through all 3 loops!");
+                    pl.addTag("parkourElytra");
+                } else {
+                    pl.sendTitle("§r", "§cIt appears you haven't gone through all checkpoints");
+                }
             }
 
             pl.sendActionbar("§6Time: §f" + millisToMinutesAndSeconds(time));
@@ -293,6 +310,7 @@ const tickInterval = setInterval(() => {
                 pl.sendInventory();
                 item1.destruct();   item2.destruct();   item3.destruct();
 
+                pl.runCommand("clear @s iron_boots");
                 pl.addTag("parkour");
                 plPkTime.set(pl, [0, 0, 0]);
                 pl.sendTitle("§r", "§aParkour started");
