@@ -1,18 +1,22 @@
 {
-  "name": "@bdsx/Party-Plugin",
-  "version": "1.0.0",
-  "description": "The Party's plugin",
-  "main": "index.js",
-  "keywords": [],
-  "author": "XXL Steve",
-  "license": "CC0",
-  "bdsxPlugin": true,
-  "scripts": {
-    "build": "tsc",
-    "watch": "tsc -w",
-    "prepare": "tsc || exit 0"
-  },
-  "devDependencies": {
-    "bdsx": "file:../bdsx"
-  }
+    "name": "@bdsx/Party-Plugin",
+    "version": "1.0.0",
+    "description": "The Party's plugin",
+    "main": "index.js",
+    "keywords": [],
+    "author": "XXL Steve",
+    "license": "CC0",
+    "bdsxPlugin": true,
+    "scripts": {
+        "build": "tsc",
+        "watch": "tsc -w",
+        "prepare": "tsc || exit 0"
+    },
+    "devDependencies": {
+        "bdsx": "file:../bdsx"
+    },
+    "dependencies": {
+        "@discordjs/opus": "^0.9.0",
+        "discord.js": "^14.14.1"
+    }
 }

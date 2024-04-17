@@ -1,6 +1,7 @@
 import { BlockPos, Vec3 } from "bdsx/bds/blockpos";
 import { logPrefix, rawtext } from "..";
 import "./commands";
+import "./discord";
 import { events } from "bdsx/event";
 import { CANCEL } from "bdsx/common";
 import { Actor, ActorDamageCause, ActorDefinitionIdentifier, ActorType, DimensionId } from "bdsx/bds/actor";

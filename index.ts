@@ -33,8 +33,9 @@ console.log(logPrefix + "Allocated");
 events.serverOpen.on(() => {
     console.log(logPrefix + "Launched");
 
-    if (serverProperties["level-name"] == "UG") require("./ug");
-    if (serverProperties["level-name"] == "lobby") require("./lobby");
+    if (serverProperties["level-name"] === "UG") require("./ug");
+    if (serverProperties["level-name"] === "lobby") require("./lobby");
+    if (serverProperties["level-name"] === "WSMP") require("./wsmp");
 
     motdInterval = setInterval(() => {
         let i = rainbowOffset;

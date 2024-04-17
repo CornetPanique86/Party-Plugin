@@ -68,7 +68,7 @@ const gameIntervalObj = {
         }
         launcher_1.bedrockServer.level.getPlayers().forEach(pl => {
             if (pl.getPosition().x > 5170) {
-                pl.sendActionbar("?§k?§r? E§kr§rror§k: §rda§kt§re u§kn§rkn§ko§rwn ?§k?§r?");
+                pl.sendActionbar("?§k?§r? E§kr§rror§k:§r da§kt§re u§kn§rkn§ko§rwn ?§k?§r?");
                 return;
             }
             if (pl.getPosition().x < 0)

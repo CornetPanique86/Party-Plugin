@@ -1,7 +1,7 @@
 import { CommandOutput, CommandPermissionLevel } from "bdsx/bds/command";
 import { command } from "bdsx/command";
 import { bedwarsstart } from "./bedwars";
-import { createCItemStack, joinqueue, leavequeue, spectate, spectateStop } from "./utils";
+import { joinqueue, leavequeue, spectate, spectateStop } from "./utils";
 import { CommandOrigin } from "bdsx/bds/commandorigin";
 import { int32_t } from "bdsx/nativetype";
 import { RelativeFloat, Vec3 } from "bdsx/bds/blockpos";

@@ -1,4 +1,4 @@
-import { CommandOutput, CommandPermissionLevel } from "bdsx/bds/command";
+import { CommandPermissionLevel } from "bdsx/bds/command";
 import { command } from "bdsx/command";
 import { landmarksASReset, landmarksReset, lobbyCoords, plLeavePk, reloadLandmarksVar } from ".";
 import { bedrockServer } from "bdsx/launcher";
@@ -9,6 +9,23 @@ import { isTimelineRunning, startTimeline, stopTimeline } from "./timeline";
 import { PlayerPermission } from "bdsx/bds/player";
 import { int32_t } from "bdsx/nativetype";
 
+command.register("discordmusic", "Start streaming audio to Discord yep so cool ikr", CommandPermissionLevel.Operator)
+    .overload(
+        (param, origin, output) => {
+
+        },
+        {
+            play: command.enum("option.play", "play")
+        },
+    )
+    .overload(
+        (param, origin, output) => {
+
+        },
+        {
+            stop: command.enum("option.stop", "stop")
+        },
+    );
 
 // /spawn
 command.register("spawn", "Teleport to spawn", CommandPermissionLevel.Normal).overload(
