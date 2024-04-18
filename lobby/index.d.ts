@@ -1,5 +1,6 @@
 import { Vec3 } from "bdsx/bds/blockpos";
 import "./commands";
+import "./discord";
 import { Player } from "bdsx/bds/player";
 export declare const lobbyCoords: Vec3;
 export declare function reloadLandmarksVar(): string;
