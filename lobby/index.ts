@@ -245,16 +245,19 @@ events.levelTick.on(e => {
                 const region = pl.getRegion();
                 const blockpos = BlockPos.create(floorPos.x, floorPos.y, floorPos.z);
                 const insideBlock = region.getBlock(blockpos);
+                const dim = bedrockServer.level.getDimension(DimensionId.Overworld);
                 if (insideBlock.getName() === "minecraft:structure_void") {
                     if ((blockpos.x < -13 && blockpos.x > -19) && (blockpos.y < 90 && blockpos.y > 82) && (blockpos.z < -46 && blockpos.z > -52)) { // FIRST LOOP
                         if (loops === 0) {
                             loops = 1;
                             pl.playSound("random.pop");
+                            if (dim) bedrockServer.level.spawnParticleEffect("minecraft:sonic_explosion", pos, dim);
                         }
                     } else if ((blockpos.x < -40 && blockpos.x > -46) && (blockpos.y < 68 && blockpos.y > 58) && (blockpos.z < -27 && blockpos.z > -36)) { // SECOND LOOP
                         if (loops === 1) {
                             loops = 2;
                             pl.playSound("random.pop");
+                            if (dim) bedrockServer.level.spawnParticleEffect("minecraft:sonic_explosion", pos, dim);
                         } else if (loops === 0) {
                             pl.sendTitle("§r", "§cIt appears you haven't gone through the previous loops");
                         }
@@ -262,6 +265,7 @@ events.levelTick.on(e => {
                         if (loops === 2) {
                             loops = 3;
                             pl.playSound("random.orb");
+                            if (dim) bedrockServer.level.spawnParticleEffect("minecraft:sonic_explosion", pos, dim);
                         } else if (loops < 2) {
                             pl.sendTitle("§r", "§cIt appears you haven't gone through the previous loops");
                         }
