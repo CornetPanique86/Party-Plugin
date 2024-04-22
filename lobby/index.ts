@@ -178,10 +178,11 @@ const startPkPos = [15, 0, 8],
       checkpoint2 = [-46, 96, -68];
 const plPkTime = new Map<Player, [number, number, number]>(); // [time, elytraLoops, checkpoint]
 
-const tickInterval = setInterval(() => {
+events.levelTick.on(e => {
+    const level = e.level;
     ticks++;
 
-    bedrockServer.level.getPlayers().forEach(pl => {
+    level.getPlayers().forEach(pl => {
         // SPEED BOOTS
         if (pl.getArmor(ArmorSlot.Feet).getName() === "minecraft:iron_boots")
             pl.addEffect(MobEffectInstance.create(MobEffectIds.Speed, 5, 15, false, false, false));
@@ -322,13 +323,13 @@ const tickInterval = setInterval(() => {
     if (ticks === 20*60) { // Every 60 seconds
         ticks = 0;
         bedrockServer.executeCommand("effect @a saturation 9999 255 true");
-        bedrockServer.level.getEntities().forEach(actor => {
+        level.getEntities().forEach(actor => {
             if (actor.getEntityTypeId() === ActorType.ArmorStand && actor.getNameTag().length > 0) {
                 actor.addEffect(MobEffectInstance.create(MobEffectIds.Invisibility, 9999, 255, false, false, false));
             }
         });
     }
-}, 50);
+});
 export function plLeavePk(pl: Player) {
     pl.removeTag("parkour");
     pl.removeTag("parkourElytra");
@@ -386,8 +387,4 @@ events.playerDropItem.on(() => {
 
 events.playerDimensionChange.on(e => {
     if (e.dimension === DimensionId.Nether) return CANCEL;
-});
-
-events.serverClose.on(() => {
-    clearInterval(tickInterval);
 });

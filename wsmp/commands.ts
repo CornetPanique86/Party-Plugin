@@ -3,7 +3,6 @@ import { command } from "bdsx/command";
 import { bedrockServer } from "bdsx/launcher";
 import { isGameRunning, startGame, stopGame } from "./pvparena";
 
-// /spawn
 command.register("pvparena", "Start the pvp arena game", CommandPermissionLevel.Operator)
 .overload(
     (param, origin, output) => {

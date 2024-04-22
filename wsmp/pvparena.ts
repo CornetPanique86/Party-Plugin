@@ -24,6 +24,21 @@ export function startGame() {
     bedrockServer.executeCommand("clear @a");
     bedrockServer.executeCommand("effect @a clear");
 
+
+    const armorNames = ["minecraft:iron_chestplate", "minecraft:iron_leggings", "minecraft:iron_boots"];
+    const armor: ItemStack[] = [];
+    for (let i = 0; i < armorNames.length; i++) {
+        armor.push(createCItemStack({
+            item: armorNames[i],
+            amount: 1,
+            enchantment: {
+                enchant: EnchantmentNames.Unbreaking,
+                level: 5,
+                isUnsafe: true
+            }
+        }));
+    }
+
     let teamCounter = 0;
     const pls = [...bedrockServer.level.getPlayers()];
     while (pls.length > 0) {
@@ -32,33 +47,32 @@ export function startGame() {
         pl.addTag("pvparena");
         teams.set(pl.getNameTag(), teamCounter);
 
-        const armorNames = ["minecraft:leather_helmet", "minecraft:iron_chestplate", "minecraft:iron_leggings", "minecraft:iron_boots"];
-        for (let i = 0; i < armorNames.length; i++) {
-            const item = createCItemStack({
-                item: armorNames[i],
-                amount: 1,
-                data: 0,
-                name: teamCounter === 1 ? "§r§bBlue team" : "§r§cRed team",
-                enchantment: {
-                    enchant: EnchantmentNames.Unbreaking,
-                    level: 5,
-                    isUnsafe: true
-                }
-            });
-            if (i === 0) { // For leather helmet
-                const tag = item.save();
-                const nbt = NBT.allocate({
-                    ...tag,
-                    tag: {
-                        ...tag.tag,
-                        "customColor": NBT.int(teamColors[teamCounter]),
-                        "minecraft:item_lock": NBT.byte(1)
-                    }
-                }) as CompoundTag;
-                item.load(nbt);
+        const helmet = createCItemStack({
+            item: "minecraft:leather_helmet",
+            amount: 1,
+            data: 0,
+            name: teamCounter === 1 ? "§r§bBlue team" : "§r§cRed team",
+            enchantment: {
+                enchant: EnchantmentNames.Unbreaking,
+                level: 5,
+                isUnsafe: true
             }
-            pl.setArmor(i, item);
-            item.destruct();
+        });
+        const tag = helmet.save();
+        const nbt = NBT.allocate({
+            ...tag,
+            tag: {
+                ...tag.tag,
+                "customColor": NBT.int(teamColors[teamCounter]),
+                "minecraft:item_lock": NBT.byte(1)
+            }
+        }) as CompoundTag;
+        helmet.load(nbt);
+        pl.setArmor(0, helmet);
+        helmet.destruct();
+
+        for (let i = 0; i < armor.length; i++) {
+            pl.setArmor(i+1, armor[i]);
         }
 
         pl.teleport(tpLocations[teamCounter]);
@@ -66,6 +80,10 @@ export function startGame() {
 
         pls.splice(randomIndex, 1);
         teamCounter === 1 ? teamCounter = 0 : teamCounter++;
+    }
+
+    for (let i = 0; i < armor.length; i++) {
+        armor[i].destruct();
     }
 
     bedrockServer.executeCommand("give @a iron_sword");
@@ -158,20 +176,6 @@ const playerRespawnLis = (e: PlayerRespawnEvent) => {
 
     teams.clear();
 
-    const armorNames = ["minecraft:iron_chestplate", "minecraft:iron_leggings", "minecraft:iron_boots"];
-    const armor: ItemStack[] = [];
-    for (let i = 0; i < armorNames.length; i++) {
-        armor.push(createCItemStack({
-            item: armorNames[i],
-            amount: 1,
-            enchantment: {
-                enchant: EnchantmentNames.Unbreaking,
-                level: 5,
-                isUnsafe: true
-            }
-        }));
-    }
-
     let teamCounter = 0;
 
     let pls: Player[] = [];
@@ -207,17 +211,11 @@ const playerRespawnLis = (e: PlayerRespawnEvent) => {
         }) as CompoundTag;
         helmet.load(nbt);
         player.setArmor(0, helmet);
-        for (let i = 0; i < armor.length; i++) {
-            player.setArmor(i+1, armor[i]);
-        }
+
         helmet.destruct();
 
         pls.splice(randomIndex, 1);
         teamCounter === 1 ? teamCounter = 0 : teamCounter++;
-    }
-
-    for (let i = 0; i < armor.length; i++) {
-        armor[i].destruct();
     }
 
     bedrockServer.executeCommand("playsound note.harp @a");

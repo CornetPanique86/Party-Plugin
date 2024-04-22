@@ -36,6 +36,7 @@ events.serverOpen.on(() => {
     if (serverProperties["level-name"] === "UG") require("./ug");
     if (serverProperties["level-name"] === "lobby") require("./lobby");
     if (serverProperties["level-name"] === "WSMP") require("./wsmp");
+    if (serverProperties["level-name"] === "CSMP") require("./csmp");
 
     motdInterval = setInterval(() => {
         let i = rainbowOffset;

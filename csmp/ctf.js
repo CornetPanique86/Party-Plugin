@@ -1,0 +1,108 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.startGameLeaders = exports.startGame = exports.isGameRunning = void 0;
+const launcher_1 = require("bdsx/launcher");
+const __1 = require("..");
+const utils_1 = require("../utils");
+const nbt_1 = require("bdsx/bds/nbt");
+exports.isGameRunning = false;
+// ====
+// DATA
+// ====
+// RED: 0        BLUE: 1
+const teams = new Map();
+const flagsStatus = [true, true]; // True = SAFE, IN BASE, NOT PICKED UP
+// CONSTANTS
+const teamColors = [-54000, 66000];
+function startGame() {
+    exports.isGameRunning = true;
+    const leaders = ["", ""];
+    let teamCounter = 0;
+    for (const pl of launcher_1.bedrockServer.level.getPlayers()) {
+        teams.set(pl.getNameTag(), teamCounter);
+        leaders[teamCounter] = pl.getNameTag();
+        teamCounter === 1 ? teamCounter = 0 : teamCounter++;
+    }
+    chooseFlagPos(leaders[0], leaders[1]);
+}
+exports.startGame = startGame;
+function startGameLeaders(leader1, leader2) {
+    launcher_1.bedrockServer.executeCommand("tellraw @a " + (0, __1.rawtext)("Not implemented", __1.LogInfo.error));
+}
+exports.startGameLeaders = startGameLeaders;
+function chooseFlagPos(leader1Name, leader2Name) {
+    if (leader1Name === "" || leader2Name === "")
+        return launcher_1.bedrockServer.executeCommand("tellraw @a " + (0, __1.rawtext)("Leaders undefined", __1.LogInfo.error));
+    const leaders = [];
+    leaders[0] = getPlayerByName(leader1Name);
+    leaders[1] = getPlayerByName(leader2Name);
+    if (leaders[0] === null || leaders[1] === null)
+        return launcher_1.bedrockServer.executeCommand("tellraw @a " + (0, __1.rawtext)("Leaders players undefined", __1.LogInfo.error));
+}
+function setup() {
+    launcher_1.bedrockServer.executeCommand("clear @a");
+    const armorNames = ["minecraft:leather_helmet", "minecraft:leather_chestplate", "minecraft:leather_leggings", "minecraft:leather_boots"];
+    const armorRed = [];
+    const armorBlue = [];
+    for (let i = 0; i < armorNames.length; i++) {
+        const item1 = (0, utils_1.createCItemStack)({ item: armorNames[i] });
+        const item2 = (0, utils_1.createCItemStack)({ item: armorNames[i] });
+        const tag1 = item1.save(), tag2 = item2.save();
+        const nbt1 = nbt_1.NBT.allocate(Object.assign(Object.assign({}, tag1), { tag: Object.assign(Object.assign({}, tag1.tag), { "customColor": nbt_1.NBT.int(teamColors[0]) }) })), nbt2 = nbt_1.NBT.allocate(Object.assign(Object.assign({}, tag2), { tag: Object.assign(Object.assign({}, tag2.tag), { "customColor": nbt_1.NBT.int(teamColors[1]) }) }));
+        item1.load(nbt1);
+        item2.load(nbt2);
+        armorRed.push(item1);
+        armorBlue.push(item2);
+    }
+    const items = [];
+    const coloredBlocks = [];
+    for (const itemName of ["stone_sword", "bow", "stone_pickaxe", "stone_axe", "stone_shovel", "oak_log"]) {
+        if (itemName === "oak_log")
+            items.push((0, utils_1.createCItemStack)({ item: itemName, amount: 64 }));
+        else
+            items.push((0, utils_1.createCItemStack)({ item: itemName }));
+    }
+    for (const blockName of ["red_terracotta", "blue_terracotta"]) {
+        coloredBlocks.push((0, utils_1.createCItemStack)({ item: blockName, amount: 64 }));
+    }
+    for (const pl of launcher_1.bedrockServer.level.getPlayers()) {
+        if (!teams.has(pl.getNameTag()))
+            teams.set(pl.getNameTag(), Math.floor(Math.random() * 2));
+        const team = teams.get(pl.getNameTag());
+        for (const item of items) {
+            pl.addItem(item);
+        }
+        pl.addItem(coloredBlocks[team]);
+        pl.sendInventory();
+        if (team === 0) {
+            for (let i = 0; i < armorRed.length; i++) {
+                pl.setArmor(i, armorRed[i]);
+            }
+        }
+        else {
+            for (let i = 0; i < armorBlue.length; i++) {
+                pl.setArmor(i, armorBlue[i]);
+            }
+        }
+        pl.sendTitle("§9Capture the Flag", `${team === 0 ? "§cRed" : "§bBlue"} §7team`);
+    }
+    for (let i = 0; i < armorNames.length; i++) {
+        armorRed[i].destruct();
+        armorBlue[i].destruct();
+    }
+    for (const item of items) {
+        item.destruct();
+    }
+    for (const coloredBlock of coloredBlocks) {
+        coloredBlock.destruct();
+    }
+}
+function getPlayerByName(name) {
+    const plList = launcher_1.bedrockServer.level.getPlayers();
+    for (let i = 0; i < plList.length; i++) {
+        if (plList[i].getNameTag() === name)
+            return plList[i];
+    }
+    return null;
+}
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiY3RmLmpzIiwic291cmNlUm9vdCI6IiIsInNvdXJjZXMiOlsiY3RmLnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7OztBQUNBLDRDQUE4QztBQUM5QywwQkFBc0M7QUFFdEMsb0NBQTRDO0FBQzVDLHNDQUFnRDtBQUdyQyxRQUFBLGFBQWEsR0FBRyxLQUFLLENBQUM7QUFFakMsT0FBTztBQUNQLE9BQU87QUFDUCxPQUFPO0FBRVAsd0JBQXdCO0FBQ3hCLE1BQU0sS0FBSyxHQUFHLElBQUksR0FBRyxFQUFrQixDQUFDO0FBQ3hDLE1BQU0sV0FBVyxHQUFHLENBQUMsSUFBSSxFQUFFLElBQUksQ0FBQyxDQUFBLENBQUMsc0NBQXNDO0FBRXZFLFlBQVk7QUFDWixNQUFNLFVBQVUsR0FBRyxDQUFDLENBQUMsS0FBSyxFQUFFLEtBQUssQ0FBQyxDQUFDO0FBRW5DLFNBQWdCLFNBQVM7SUFDckIscUJBQWEsR0FBRyxJQUFJLENBQUM7SUFDckIsTUFBTSxPQUFPLEdBQUcsQ0FBQyxFQUFFLEVBQUUsRUFBRSxDQUFDLENBQUM7SUFFekIsSUFBSSxXQUFXLEdBQUcsQ0FBQyxDQUFDO0lBQ3BCLEtBQUssTUFBTSxFQUFFLElBQUksd0JBQWEsQ0FBQyxLQUFLLENBQUMsVUFBVSxFQUFFLEVBQUU7UUFDL0MsS0FBSyxDQUFDLEdBQUcsQ0FBQyxFQUFFLENBQUMsVUFBVSxFQUFFLEVBQUUsV0FBVyxDQUFDLENBQUM7UUFDeEMsT0FBTyxDQUFDLFdBQVcsQ0FBQyxHQUFHLEVBQUUsQ0FBQyxVQUFVLEVBQUUsQ0FBQztRQUV2QyxXQUFXLEtBQUssQ0FBQyxDQUFDLENBQUMsQ0FBQyxXQUFXLEdBQUcsQ0FBQyxDQUFDLENBQUMsQ0FBQyxXQUFXLEVBQUUsQ0FBQztLQUN2RDtJQUVELGFBQWEsQ0FBQyxPQUFPLENBQUMsQ0FBQyxDQUFDLEVBQUUsT0FBTyxDQUFDLENBQUMsQ0FBQyxDQUFDLENBQUM7QUFDMUMsQ0FBQztBQWJELDhCQWFDO0FBRUQsU0FBZ0IsZ0JBQWdCLENBQUMs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
