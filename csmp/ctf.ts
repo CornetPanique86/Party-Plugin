@@ -160,8 +160,6 @@ function chooseFlagPos(leader1Name: string, leader2Name: string) {
 }
 
 function checkAirSpace(from: BlockPos, to: BlockPos) {
-    const air = Block.create("minecraft:air")!;
-
     const region = bedrockServer.level.getDimension(DimensionId.Overworld)?.getBlockSource();
     if (!region) {
         bedrockServer.executeCommand("tellraw @a " + rawtext("Couldn't check airspace: region undefined", LogInfo.error));
@@ -182,7 +180,7 @@ function checkAirSpace(from: BlockPos, to: BlockPos) {
             for (let z = sourceZ; z <= destZ; z++) {
                 if (!isAirSpaceClear) break;
                 const blockPos = BlockPos.create(x, y, z);
-                if (!region.getBlock(blockPos).equals(air)) {
+                if (region.getBlock(blockPos).getName() !== "minecraft:air")  {
                     isAirSpaceClear = false;
                 }
             }
