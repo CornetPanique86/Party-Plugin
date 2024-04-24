@@ -2,10 +2,11 @@ import { CommandPermissionLevel, PlayerCommandSelector } from "bdsx/bds/command"
 import { command } from "bdsx/command";
 import { bedrockServer } from "bdsx/launcher";
 import { isGameRunning, startGame, startGameLeaders } from "./ctf";
-import { logPrefix } from "..";
+import { RelativeFloat, Vec3 } from "bdsx/bds/blockpos";
+import { createCItemStack } from "../utils";
+import { CompoundTag, NBT } from "bdsx/bds/nbt";
+import { ItemStack } from "bdsx/bds/inventory";
 
-const fs = require('fs');
-const path = require('path');
 
 command.register("ctf", "Start the capture the flag game", CommandPermissionLevel.Operator)
 .overload(
@@ -42,31 +43,6 @@ command.register("ctf", "Start the capture the flag game", CommandPermissionLeve
         leader1: [PlayerCommandSelector, true],
         leader2: [PlayerCommandSelector, true],
     },
-)
-.overload(
-    (param, origin, output) => {
-        const actor = origin.getEntity();
-        if (!actor?.isPlayer()) return;
-
-        if (!isGameRunning) return output.error("No game is even running");
-
-        const worldsPath = path.join(process.cwd(), "worlds");
-        try {
-            console.log(logPrefix + "Starting copy...");
-            fs.cpSync(path.join(worldsPath, "CSMP_backup"), path.join(worldsPath, "CSMP"), {
-              recursive: true,
-              force: true
-            });
-            console.log(logPrefix + "Ended copy, closing server...");
-            bedrockServer.stop();
-
-          } catch (error) {
-            console.log(error.message);
-        }
-    },
-    {
-        option: command.enum("option.reset", "reset")
-    },
 );
 
 command.register("test", "the csmp test cmd", CommandPermissionLevel.Normal).overload(
@@ -74,28 +50,40 @@ command.register("test", "the csmp test cmd", CommandPermissionLevel.Normal).ove
         const actor = origin.getEntity();
         if (!actor?.isPlayer()) return;
 
-        actor.runCommand('tellraw @a {"rawtext":[{"text":"AAAAAAAA"}]}');
+        // const armorNames = ["minecraft:leather_helmet", "minecraft:leather_chestplate", "minecraft:leather_leggings", "minecraft:leather_boots"];
+        // const armorRed: ItemStack[] = [];
+        // for (let i = 0; i < armorNames.length; i++) {
+        //     const item = createCItemStack({ item: armorNames[i] });
 
-        /*
-        ItemStack<[ItemStackNetId: [TypedServerNetId: 13]] 1 x Lodestone Compass(615)@0> {
-  vftable: VoidPointer { 0x00007FF676A774C0 },
-  item: Item {},
-  userData: CompoundTag { 'trackingHandle' => IntTag 1 },
-  block: null,
-  aux: 0,
-  amount: 1,
-  valid: true,
-  pickupTime: '�湨䑤\u0000',
-  showPickup: true,
-  canPlaceOn: CxxVector [],
-  canDestroy: CxxVector [] }
+        //     const tag = item.save();
+        //     const nbt = NBT.allocate({
+        //         ...tag,
+        //         tag: {
+        //             ...tag.tag,
+        //             "customColor": NBT.int(-54000)
+        //         }
+        //     }) as CompoundTag;
+        //     item.load(nbt);
 
+        //     armorRed.push(item);
+        // }
+        // bedrockServer.level.getPlayers().forEach(pl => {
+        //     for (let i = 0; i < armorRed.length; i++) {
+        //         pl.setArmor(i, armorRed[i]);
+        //     }
+        // });
 
-CompoundTag { 'trackingHandle' => IntTag 1 }
-
-
-INTTAG: lodestone number in the whole world! hardcorded coords?
-        */
+        actor.teleport(Vec3.create(param.x.value, param.y.value, param.z.value));
+        output.success(
+            `relative float example> origin=${origin.getName()}\n` +
+                `${param.x.value} ${param.x.is_relative}\n` +
+                `${param.y.value} ${param.y.is_relative}\n` +
+                `${param.z.value} ${param.z.is_relative}\n`,
+        );
     },
-    { }
+    {
+        x: RelativeFloat,
+        y: RelativeFloat,
+        z: RelativeFloat,
+    }
 )
