@@ -11,6 +11,8 @@ import { Block } from "bdsx/bds/block";
 import { DimensionId } from "bdsx/bds/actor";
 import { ItemUseEvent } from "bdsx/event_impl/entityevent";
 import { Form } from "bdsx/bds/form";
+import { ItemStack } from "bdsx/bds/inventory";
+import { plLeavePk } from "../lobby";
 
 const fs = require('fs');
 const path = require('path');
@@ -280,14 +282,70 @@ function setup() {
 
         pl.teleport(teamSpawnPos[team]);
         pl.sendTitle("§9Capture the Flag", `${teamRawtext[team]} §7team`);
+        pl.playSound("mob.enderdragon.growl", undefined, 0.5);
     }
 
     for (let i = 0; i < armorNames.length; i++) {
         armorRed[i].destruct();
         armorBlue[i].destruct();
     }
+
 }
 
+function giveItems(pl: Player, team: number) {
+    const armorNames = ["minecraft:leather_helmet", "minecraft:leather_chestplate", "minecraft:leather_leggings", "minecraft:leather_boots"];
+
+    for (let i = 0; i < armorNames.length; i++) {
+        const item = createCItemStack({ item: armorNames[i] });
+
+        const tag = item.save();
+        const nbt = NBT.allocate({
+            ...tag,
+            tag: {
+                ...tag.tag,
+                "customColor": NBT.int(teamColors[team])
+            }
+        }) as CompoundTag;
+        item.load(nbt);
+
+        pl.setArmor(i, item);
+        item.destruct();
+    }
+
+    for (const itemName of ["stone_sword", "bow", "stone_pickaxe", "stone_axe", "stone_shovel", "oak_log", "arrow"]) {
+        let item: ItemStack;
+        if (itemName === "oak_log") item = (createCItemStack({ item: itemName, amount: 64 }))
+            else if (itemName === "arrow") item = (createCItemStack({ item: itemName, amount: 32 }))
+            else item = (createCItemStack({ item: itemName }));
+        pl.addItem(item);
+        item.destruct();
+    }
+    const item = team === 0 ? createCItemStack({ item: "red_terracotta", amount: 64 }) : createCItemStack({ item: "blue_terracotta", amount: 64 });
+    pl.addItem(item);
+    item.destruct();
+
+    pl.sendInventory();
+}
+
+events.blockDestroy.on(e => {
+    if (!isGameRunning) return;
+    const bl = e.blockSource.getBlock(e.blockPos).getName();
+    if (bl === "un:red_banner_block" || "un:blue_banner_block") {
+        const team = bl === "un:red_banner_block" ? 0 : 1;
+        if ((e.blockPos.x === bannerPos[team].x && e.blockPos.y === bannerPos[team].y && e.blockPos.z === bannerPos[team].z)) {
+            // BANNER TAKEN
+            const pl = e.player;
+
+            bedrockServer.executeCommand("tellraw @a " + rawtext(`§7${pl.getNameTag()}`))
+
+            // Block breaks but doesn't drop
+            const reg = pl.getRegion();
+            const airBlock = Block.create("minecraft:air")!;
+            reg.setBlock(e.blockPos, airBlock);
+        }
+        return CANCEL;
+    }
+});
 
 events.playerJoin.on(async e => {
     const pl = e.player;
@@ -297,6 +355,18 @@ events.playerJoin.on(async e => {
     if (!isGameRunning) {
         pl.teleport(Vec3.create(731, 89, 288), DimensionId.Overworld);
         pl.runCommand("clear");
+    } else {
+        const plName = pl.getNameTag();
+        if (!teams.has(plName)) {
+            teams.set(plName, Math.floor(Math.random()*2));
+            pl.sendTitle(`${teamRawtext[teams.get(plName)!]} team`, "§7You were assigned to a team");
+            pl.playSound("note.harp");
+        }
+        const team = teams.get(plName)!;
+
+        giveItems(pl, team);
+
+        pl.teleport(teamSpawnPos[team]);
     }
 });
 
