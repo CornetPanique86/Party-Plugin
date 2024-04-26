@@ -1,12 +1,19 @@
 import { CommandPermissionLevel, PlayerCommandSelector } from "bdsx/bds/command";
 import { command } from "bdsx/command";
 import { bedrockServer } from "bdsx/launcher";
-import { isGameRunning, startGame, startGameLeaders } from "./ctf";
+import { getConstant, isGameRunning, startGame, startGameLeaders } from "./ctf";
 import { RelativeFloat, Vec3 } from "bdsx/bds/blockpos";
 import { createCItemStack } from "../utils";
 import { CompoundTag, NBT } from "bdsx/bds/nbt";
 import { ItemStack } from "bdsx/bds/inventory";
 
+export enum Constants {
+    isGameRunning,
+    teams,
+    flagsStatus,
+    flagHolder,
+    bannerPos
+}
 
 command.register("ctf", "Start the capture the flag game", CommandPermissionLevel.Operator)
 .overload(
@@ -42,6 +49,18 @@ command.register("ctf", "Start the capture the flag game", CommandPermissionLeve
         leaders: command.enum("leaders.leaders", "leaders"),
         leader1: [PlayerCommandSelector, true],
         leader2: [PlayerCommandSelector, true],
+    },
+)
+.overload(
+    (param, origin, output) => {
+        const actor = origin.getEntity();
+        if (!actor?.isPlayer()) return;
+
+        output.success(getConstant(param.constant).toString());
+    },
+    {
+        action: command.enum("action.constants", "constants"),
+        constant: command.enum("constant.value", Constants)
     },
 );
 

@@ -12,7 +12,7 @@ import { DimensionId } from "bdsx/bds/actor";
 import { ItemUseEvent } from "bdsx/event_impl/entityevent";
 import { Form } from "bdsx/bds/form";
 import { ItemStack } from "bdsx/bds/inventory";
-import { plLeavePk } from "../lobby";
+import { Constants } from "./commands";
 
 const fs = require('fs');
 const path = require('path');
@@ -25,7 +25,8 @@ export let isGameRunning = false;
 
 // RED: 0        BLUE: 1
 const teams = new Map<string, number>();
-const flagsStatus = [true, true] // True = SAFE, IN BASE, NOT PICKED UP
+const flagsStatus = [true, true]; // True = SAFE, IN BASE, NOT PICKED UP
+const flagHolder: string[] = ["", ""];
 const bannerPos = [Vec3.create(669, 85, 335), Vec3.create(596, 65, 252)]; // gotta change the default
 
 // CONSTANTS
@@ -198,7 +199,7 @@ function setup() {
     // FLAGS SETUP
     //
     for (let i=0; i < bannerPos.length; i++) {
-        const bannerBlocks = [Block.create("minecraft:standing_banner", 1), Block.create("minecraft:standing_banner", 4)];
+        const bannerBlocks = [Block.create("un:red_banner_block"), Block.create("un:blue_banner_block")];
 
         const region = bedrockServer.level.getDimension(DimensionId.Overworld)?.getBlockSource();
         if (!region) {
@@ -327,16 +328,129 @@ function giveItems(pl: Player, team: number) {
     pl.sendInventory();
 }
 
+function flagCaptured(pl: Player, teamStolen: number) {
+    pl.runCommand("clear @s " + (teamStolen === 0 ? "un:red_banner_helmet" : "un:blue_banner_helmet"));
+    pl.sendTitle("§r", "§aFlag Captured");
+
+    bedrockServer.executeCommand("tellraw @a " + rawtext(`§f${pl.getNameTag()} §7has §acaptured ${teamRawtext[teamStolen]}§7's flag!`));
+    bedrockServer.executeCommand("playsound @a random.levelup");
+
+    const bannerBlock = [Block.create("un:red_banner_block"), Block.create("un:blue_banner_block")][teamStolen];
+    const region = pl.getRegion();
+    region.setBlock(BlockPos.create(bannerPos[teamStolen]), bannerBlock!);
+    flagsStatus[teamStolen] = true;
+    flagHolder[0] = ""; flagHolder[1] = "";
+}
+
+function flagDropped(pl: Player) {
+    const team = teams.get(pl.getNameTag());
+    if (!team) return;
+    const teamDropped = team === 0 ? 1 : 0;
+
+    if (pl.isPlayerInitialized()) pl.runCommand("clear @s " + (teamDropped === 0 ? "un:red_banner_helmet" : "un:blue_banner_helmet"));
+
+    bedrockServer.executeCommand("tellraw @a " + rawtext(`${teamRawtext[teamDropped]}§7's flag §7was §cdropped §7by §f${pl.getNameTag()}§7!`));
+    bedrockServer.executeCommand("playsound @a random.pop");
+
+    const bannerBlock = [Block.create("un:red_banner_block"), Block.create("un:blue_banner_block")][teamDropped];
+    const region = bedrockServer.level.getDimension(DimensionId.Overworld)?.getBlockSource();
+    if (!region) {
+        bedrockServer.executeCommand("tellraw @a " + rawtext("Couldn't replace banner: region undefined", LogInfo.error));
+        return false;
+    }
+    region.setBlock(BlockPos.create(bannerPos[teamDropped]), bannerBlock!);
+    flagsStatus[teamDropped] = true;
+    flagHolder[flagHolder.indexOf(pl.getNameTag())] = "";
+}
+
+
+
+function end() {
+    return;
+}
+
+
+
+let ticks = 0;
+events.levelTick.on(e => {
+    if (!isGameRunning) return;
+    const level = e.level;
+
+    if (level.getActivePlayerCount() < 2) {
+        end();
+        return;
+    }
+
+    level.getPlayers().forEach(pl => {
+        const pos = pl.getPosition();
+        const plName = pl.getNameTag();
+        if (!teams.has(plName)) return;
+        const team = teams.get(plName)!;
+
+        if (ticks === 80) {
+            pl.runCommand("fill ~+5 68 ~-5 ~-5 71 ~+5 air replace border_block");
+        }
+
+        if (pos.y > 130 || pos.y < 50) { // BUILD LIMIT
+            pl.teleport(teamSpawnPos[team]);
+            pl.sendMessage("§cYou were teleported for reaching build limit!");
+        } else if (flagHolder[0] === plName) { // Red player
+            if ((pos.x >= bannerPos[0].x-1 && pos.x <= bannerPos[0].x+1)
+             && (pos.y >= bannerPos[0].y && pos.y <= bannerPos[0].y+2)
+             && (pos.z >= bannerPos[0].z-1 && pos.z <= bannerPos[0].z+1)) {
+                if (!flagsStatus[team]) return; // Player's team's flag is taken
+                flagCaptured(pl, 1);
+            }
+        } else if (flagHolder[1] === plName) { // Blue player
+            if ((pos.x >= bannerPos[1].x-1 && pos.x <= bannerPos[1].x+1)
+             && (pos.y >= bannerPos[1].y && pos.y <= bannerPos[1].y+2)
+             && (pos.z >= bannerPos[1].z-1 && pos.z <= bannerPos[1].z+1)) {
+                if (!flagsStatus[team]) return; // Player's team's flag is taken
+                flagCaptured(pl, 0);
+            }
+        }
+    });
+
+    ticks === 80 ? ticks = 0 : ticks++;
+});
+
 events.blockDestroy.on(e => {
     if (!isGameRunning) return;
     const bl = e.blockSource.getBlock(e.blockPos).getName();
     if (bl === "un:red_banner_block" || "un:blue_banner_block") {
-        const team = bl === "un:red_banner_block" ? 0 : 1;
-        if ((e.blockPos.x === bannerPos[team].x && e.blockPos.y === bannerPos[team].y && e.blockPos.z === bannerPos[team].z)) {
+        const teamStolen = bl === "un:red_banner_block" ? 0 : 1;
+        // Just to check if flag is where it's supposed to be
+        if ((e.blockPos.x === bannerPos[teamStolen].x && e.blockPos.y === bannerPos[teamStolen].y && e.blockPos.z === bannerPos[teamStolen].z)) {
             // BANNER TAKEN
             const pl = e.player;
+            const team = teams.get(pl.getNameTag());
+            if (!team) return CANCEL;
+            if (team === teamStolen) {
+                pl.sendMessage("§cYou can't break your own flag!");
+                return CANCEL;
+            }
 
-            bedrockServer.executeCommand("tellraw @a " + rawtext(`§7${pl.getNameTag()}`))
+            bedrockServer.executeCommand("tellraw @a " + rawtext(`§f${pl.getNameTag()} §7has stolen ${teamRawtext[teamStolen]}§7's flag!`));
+            bedrockServer.executeCommand("playsound @a note.banjo");
+
+            flagsStatus[teamStolen] = false;
+            flagHolder[team] = pl.getNameTag();
+            const helmet = teamStolen === 0 ? createCItemStack({ item: "un:red_banner_helmet" }) : createCItemStack({ item: "un:blue_banner_helmet" });
+            const tag = helmet.save();
+            const nbt = NBT.allocate({
+                ...tag,
+                tag: {
+                    ...tag.tag,
+                    "minecraft:item_lock": NBT.byte(1),
+                    "minecraft:keep_on_death": NBT.byte(1)
+                }
+            }) as CompoundTag;
+            helmet.load(nbt);
+            pl.setArmor(0, helmet);
+            helmet.destruct();
+
+            pl.runCommand("§7>> §fReturn the flag to your base! §7<<");
+
 
             // Block breaks but doesn't drop
             const reg = pl.getRegion();
@@ -344,6 +458,34 @@ events.blockDestroy.on(e => {
             reg.setBlock(e.blockPos, airBlock);
         }
         return CANCEL;
+    }
+});
+
+events.playerRespawn.on(async e => {
+    if (!isGameRunning) return;
+    const pl = e.player;
+    while (!pl.isPlayerInitialized()) {
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Tick delay to avoid server load
+    }
+
+    pl.runCommand("clear @s");
+    const plName = pl.getNameTag();
+    if (!teams.has(plName)) return;
+    const team = teams.get(plName)!;
+
+    giveItems(pl, team);
+
+    if (flagHolder.includes(plName)) {
+        flagDropped(pl);
+    }
+});
+
+events.playerLeft.on(e => {
+    if (!isGameRunning) return;
+    const pl = e.player;
+    const plName = pl.getNameTag();
+    if (flagHolder.includes(plName)) {
+        flagDropped(pl);
     }
 });
 
@@ -356,6 +498,8 @@ events.playerJoin.on(async e => {
         pl.teleport(Vec3.create(731, 89, 288), DimensionId.Overworld);
         pl.runCommand("clear");
     } else {
+        pl.runCommand("clear @s");
+
         const plName = pl.getNameTag();
         if (!teams.has(plName)) {
             teams.set(plName, Math.floor(Math.random()*2));
@@ -372,7 +516,26 @@ events.playerJoin.on(async e => {
 
 events.playerDimensionChange.on(() => {
     return CANCEL;
-})
+});
+
+
+// DEBUG
+export function getConstant(constant: Constants) {
+    switch (constant) {
+        case Constants.isGameRunning:
+            return (isGameRunning);
+        case Constants.bannerPos:
+            return (bannerPos);
+        case Constants.flagHolder:
+            return (flagHolder);
+        case Constants.flagsStatus:
+            return (flagsStatus);
+        case Constants.teams:
+            return (teams);
+        default:
+            return ("No constant provided");
+    }
+}
 
 function getPlayerByName(name: string): Player | null {
     const plList = bedrockServer.level.getPlayers();
