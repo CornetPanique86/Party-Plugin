@@ -53,10 +53,8 @@ command.register("ctf", "Start the capture the flag game", CommandPermissionLeve
 )
 .overload(
     (param, origin, output) => {
-        const actor = origin.getEntity();
-        if (!actor?.isPlayer()) return;
-
         output.success(getConstant(param.constant).toString());
+        console.log(getConstant(param.constant));
     },
     {
         action: command.enum("action.constants", "constants"),

@@ -3,7 +3,7 @@ import { bedrockServer } from "bdsx/launcher";
 import { LogInfo, rawtext } from "..";
 import { createCItemStack } from "../utils";
 import { CompoundTag, NBT } from "bdsx/bds/nbt";
-import { Player } from "bdsx/bds/player";
+import { GameType, Player } from "bdsx/bds/player";
 import { BlockPlaceEvent } from "bdsx/event_impl/blockevent";
 import { CANCEL } from "bdsx/common";
 import { BlockPos, Vec3 } from "bdsx/bds/blockpos";
@@ -13,6 +13,8 @@ import { ItemUseEvent } from "bdsx/event_impl/entityevent";
 import { Form } from "bdsx/bds/form";
 import { ItemStack } from "bdsx/bds/inventory";
 import { Constants } from "./commands";
+import { GameRuleId } from "bdsx/bds/gamerules";
+import { MobEffectIds, MobEffectInstance } from "bdsx/bds/effects";
 
 const fs = require('fs');
 const path = require('path');
@@ -25,8 +27,10 @@ export let isGameRunning = false;
 
 // RED: 0        BLUE: 1
 const teams = new Map<string, number>();
+const playerStats = new Map<string, { kills: number, deaths: number, flags: number }>();
 const flagsStatus = [true, true]; // True = SAFE, IN BASE, NOT PICKED UP
 const flagHolder: string[] = ["", ""];
+const flagCount = [0, 0];
 const bannerPos = [Vec3.create(669, 85, 335), Vec3.create(596, 65, 252)]; // gotta change the default
 
 // CONSTANTS
@@ -51,7 +55,29 @@ export function startGame() {
 }
 
 export function startGameLeaders(leader1: string, leader2: string) {
-    bedrockServer.executeCommand("tellraw @a " + rawtext("Not implemented", LogInfo.error));
+    let leaderRed: Player | undefined = undefined;
+    let leaderBlue: Player | undefined = undefined;
+    for (const pl of bedrockServer.level.getPlayers()) {
+        const plName = pl.getNameTag();
+        if (plName === leader1) {
+            leaderRed = pl;
+        } else if (plName === leader2) {
+            leaderBlue = pl;
+        }
+    }
+    if (leaderRed == undefined || leaderBlue == undefined) {
+        bedrockServer.executeCommand("tellraw @a " + rawtext("Leader undefined", LogInfo.error));
+        return;
+    }
+
+    let remainingPls: Player[] = [...bedrockServer.level.getPlayers()];
+    const teamPls: [Player[], Player[]] = [[], []];
+    async function choosePlayerForm(pl: Player) {
+        let redPlsStr = "§cRed: §r";
+        let bluePlsStr = "§bBlue: §r";
+
+
+    }
 }
 
 function chooseFlagPos(leader1Name: string, leader2Name: string) {
@@ -63,13 +89,11 @@ function chooseFlagPos(leader1Name: string, leader2Name: string) {
     const dim = bedrockServer.level.getDimension(DimensionId.Overworld);
     if (!dim) return bedrockServer.executeCommand("tellraw @a " +rawtext("Dimension undefined", LogInfo.error));
 
-    bedrockServer.executeCommand(`tellraw "${leader1Name}" ${rawtext("Pls just pretend the red concrete is a BANNER. So place it somewhere.", LogInfo.warn)}`);
-    bedrockServer.executeCommand(`tellraw "${leader2Name}" ${rawtext("Pls just pretend the blue concrete is a BANNER. So place it somewhere.", LogInfo.warn)}`);
-    bedrockServer.executeCommand(`give "${leader1Name}" red_concrete 1 1 {"minecraft:can_place_on":${canPlaceOnAllBlox}, "minecraft:item_lock":{ "mode": "lock_in_slot" }}`);
-    bedrockServer.executeCommand(`give "${leader2Name}" blue_concrete 1 1 {"minecraft:can_place_on":${canPlaceOnAllBlox}, "minecraft:item_lock":{ "mode": "lock_in_slot" }}`);
+    bedrockServer.executeCommand(`give "${leader1Name}" un:red_banner_block 1 1 {"minecraft:can_place_on":${canPlaceOnAllBlox}, "minecraft:item_lock":{ "mode": "lock_in_slot" }}`);
+    bedrockServer.executeCommand(`give "${leader2Name}" un:blue_banner_block 1 1 {"minecraft:can_place_on":${canPlaceOnAllBlox}, "minecraft:item_lock":{ "mode": "lock_in_slot" }}`);
 
     const blockPlaceLis = (e: BlockPlaceEvent) => {
-        if (e.block.getName() === "minecraft:red_concrete" || e.block.getName() === "minecraft:blue_concrete") {
+        if (e.block.getName() === "un:red_banner_block" || e.block.getName() === "un:blue_banner_block") {
             const pl = e.player;
             const pos = e.blockPos;
             let team = 0;
@@ -99,7 +123,6 @@ function chooseFlagPos(leader1Name: string, leader2Name: string) {
         }
     }
     const itemUseLis = async (e: ItemUseEvent) => {
-        console.log(e.itemStack.getName());
         if (e.itemStack.getName() === "minecraft:slime") {
             const pl = e.player;
             let team = 0;
@@ -121,6 +144,7 @@ function chooseFlagPos(leader1Name: string, leader2Name: string) {
                     stopChooseFlagPos();
                     setup();
                 } else {
+                    pl.runCommand("clear");
                     bedrockServer.executeCommand("tellraw @a " + rawtext(teamRawtext[team] + " §ais ready!", LogInfo.info));
                     bedrockServer.executeCommand("playsound random.pop @a");
                 }
@@ -194,6 +218,9 @@ function checkAirSpace(from: BlockPos, to: BlockPos) {
 
 function setup() {
     bedrockServer.executeCommand("clear @a");
+    bedrockServer.executeCommand("effect clear @a");
+    bedrockServer.gameRules.setRule(GameRuleId.DoImmediateRespawn, true);
+    bedrockServer.gameRules.setRule(GameRuleId.DoMobSpawning, false);
 
     //
     // FLAGS SETUP
@@ -281,9 +308,11 @@ function setup() {
             }
         }
 
+        playerStats.set(pl.getNameTag(), { kills: 0, deaths: 0, flags: 0 });
         pl.teleport(teamSpawnPos[team]);
         pl.sendTitle("§9Capture the Flag", `${teamRawtext[team]} §7team`);
         pl.playSound("mob.enderdragon.growl", undefined, 0.5);
+        pl.setGameType(GameType.Survival);
     }
 
     for (let i = 0; i < armorNames.length; i++) {
@@ -291,6 +320,9 @@ function setup() {
         armorBlue[i].destruct();
     }
 
+    scoreboardUpd();
+
+    isGameRunning = true;
 }
 
 function giveItems(pl: Player, team: number) {
@@ -329,6 +361,9 @@ function giveItems(pl: Player, team: number) {
 }
 
 function flagCaptured(pl: Player, teamStolen: number) {
+    const stats = playerStats.get(pl.getNameTag()) || { kills: 0, deaths: 0, flags: 0 };
+    stats.flags++;
+    playerStats.set(pl.getNameTag(), stats);
     pl.runCommand("clear @s " + (teamStolen === 0 ? "un:red_banner_helmet" : "un:blue_banner_helmet"));
     pl.sendTitle("§r", "§aFlag Captured");
 
@@ -339,7 +374,10 @@ function flagCaptured(pl: Player, teamStolen: number) {
     const region = pl.getRegion();
     region.setBlock(BlockPos.create(bannerPos[teamStolen]), bannerBlock!);
     flagsStatus[teamStolen] = true;
+    teamStolen===0 ? flagCount[1]++ : flagCount[0]++;
     flagHolder[0] = ""; flagHolder[1] = "";
+    scoreboardUpd();
+    end();
 }
 
 function flagDropped(pl: Player) {
@@ -363,10 +401,42 @@ function flagDropped(pl: Player) {
     flagHolder[flagHolder.indexOf(pl.getNameTag())] = "";
 }
 
-
+function scoreboardUpd() {
+    const str = [
+        "§7Flags:",
+        `§c[R] ${flagCount[0]}§7/3`,
+        `§b[B] ${flagCount[1]}§7/3`
+    ];
+    bedrockServer.level.getPlayers().forEach(pl => {
+        pl.setFakeScoreboard("CTF", str);
+    });
+}
 
 function end() {
-    return;
+    // TESTS
+    if (flagCount[0] < 3 || flagCount[1] < 3) return;
+
+
+    const teamW = flagCount[0]===3 ? 0 : 1;
+    bedrockServer.level.getPlayers().forEach(pl => {
+        const plName = pl.getNameTag();
+        pl.sendMessage(`
+§7------------------
+§l${teamRawtext[teamW]} §r§awon the game!
+
+§fKills §7- §a${playerStats.get(plName)?.kills}
+§fDeaths §7- §a${playerStats.get(plName)?.deaths}
+§fFlags Captured §7- §a${playerStats.get(plName)?.flags}
+§7------------------`);
+
+        pl.playSound("firework.large_blast");
+
+        const team = teams.get(plName) || 0;
+        team === teamW ? pl.sendTitle("§aVICTORY!") : pl.sendTitle("§cYou lost");
+        team === teamW ? pl.playSound("horn.call.1") : pl.playSound("horn.call.5");
+
+        pl.setGameType(GameType.Spectator);
+    });
 }
 
 
@@ -381,50 +451,60 @@ events.levelTick.on(e => {
         return;
     }
 
+    if (ticks === 20) {
+        bedrockServer.executeCommand("execute at @a run fill ~+10 68 ~-5 ~-10 71 ~+5 air replace border_block");
+    }
+
     level.getPlayers().forEach(pl => {
         const pos = pl.getPosition();
         const plName = pl.getNameTag();
         if (!teams.has(plName)) return;
         const team = teams.get(plName)!;
 
-        if (ticks === 80) {
-            pl.runCommand("fill ~+5 68 ~-5 ~-5 71 ~+5 air replace border_block");
-        }
-
         if (pos.y > 130 || pos.y < 50) { // BUILD LIMIT
             pl.teleport(teamSpawnPos[team]);
             pl.sendMessage("§cYou were teleported for reaching build limit!");
         } else if (flagHolder[0] === plName) { // Red player
-            if ((pos.x >= bannerPos[0].x-1 && pos.x <= bannerPos[0].x+1)
-             && (pos.y >= bannerPos[0].y && pos.y <= bannerPos[0].y+2)
-             && (pos.z >= bannerPos[0].z-1 && pos.z <= bannerPos[0].z+1)) {
+            if ((pos.x >= (bannerPos[0].x-1) && pos.x <= (bannerPos[0].x+1.5))
+             && (pos.y >= (bannerPos[0].y) && pos.y <= (bannerPos[0].y+2))
+             && (pos.z >= (bannerPos[0].z-1) && pos.z <= (bannerPos[0].z+1.5))) {
                 if (!flagsStatus[team]) return; // Player's team's flag is taken
                 flagCaptured(pl, 1);
             }
         } else if (flagHolder[1] === plName) { // Blue player
-            if ((pos.x >= bannerPos[1].x-1 && pos.x <= bannerPos[1].x+1)
-             && (pos.y >= bannerPos[1].y && pos.y <= bannerPos[1].y+2)
-             && (pos.z >= bannerPos[1].z-1 && pos.z <= bannerPos[1].z+1)) {
+            if ((pos.x >= (bannerPos[1].x-1) && pos.x <= (bannerPos[1].x+1.5))
+             && (pos.y >= (bannerPos[1].y) && pos.y <= (bannerPos[1].y+2))
+             && (pos.z >= (bannerPos[1].z-1) && pos.z <= (bannerPos[1].z+1.5))) {
                 if (!flagsStatus[team]) return; // Player's team's flag is taken
                 flagCaptured(pl, 0);
             }
         }
     });
 
-    ticks === 80 ? ticks = 0 : ticks++;
+    ticks === 20 ? ticks = 0 : ticks++;
 });
 
 events.blockDestroy.on(e => {
     if (!isGameRunning) return;
     const bl = e.blockSource.getBlock(e.blockPos).getName();
-    if (bl === "un:red_banner_block" || "un:blue_banner_block") {
+    const pl = e.player;
+    // console.log(pl);
+    // console.log(pl.getNameTag());
+    if (e.blockPos.y <= 50 || e.blockPos.y >= 130) {
+        e.player.sendMessage("§cBlock is outside of map's limits!");
+        return CANCEL;
+    }
+    if (bl === "un:red_banner_block" || bl === "un:blue_banner_block") {
         const teamStolen = bl === "un:red_banner_block" ? 0 : 1;
+        // console.log(`${e.blockPos.x} ${e.blockPos.y} ${e.blockPos.z}`);
+        // console.log(`${bannerPos[teamStolen].x} ${bannerPos[teamStolen].y} ${bannerPos[teamStolen].z}`);
         // Just to check if flag is where it's supposed to be
-        if ((e.blockPos.x === bannerPos[teamStolen].x && e.blockPos.y === bannerPos[teamStolen].y && e.blockPos.z === bannerPos[teamStolen].z)) {
+        if ((e.blockPos.x === bannerPos[teamStolen].x) && (e.blockPos.y === bannerPos[teamStolen].y) && (e.blockPos.z === bannerPos[teamStolen].z)) {
             // BANNER TAKEN
-            const pl = e.player;
             const team = teams.get(pl.getNameTag());
-            if (!team) return CANCEL;
+            if (!team) {
+                pl.sendMessage("Warning there was a problem you don't have a team pls contact admins");
+                return CANCEL};
             if (team === teamStolen) {
                 pl.sendMessage("§cYou can't break your own flag!");
                 return CANCEL;
@@ -459,9 +539,28 @@ events.blockDestroy.on(e => {
         }
         return CANCEL;
     }
+    return;
+});
+
+events.blockPlace.on(e => {
+    if (!isGameRunning) return;
+    const {x, y, z} = e.blockPos;
+    if (y <= 50 || y >= 130) {
+        e.player.sendMessage("§cYou cannot place blocks outside of the map's limits!");
+        return CANCEL;
+    }
+    for (const banner of bannerPos) {
+        if ((x >= (banner.x-1) && x <= (banner.x+1))
+         && (y >= (banner.y) && y <= (banner.y+2))
+         && (z >= (banner.z-1) && z <= (banner.z+1))) {
+            return CANCEL;
+        }
+    }
+    return;
 });
 
 events.playerRespawn.on(async e => {
+    console.log("events.playerRespawn");
     if (!isGameRunning) return;
     const pl = e.player;
     while (!pl.isPlayerInitialized()) {
@@ -472,6 +571,7 @@ events.playerRespawn.on(async e => {
     const plName = pl.getNameTag();
     if (!teams.has(plName)) return;
     const team = teams.get(plName)!;
+    pl.teleport(teamSpawnPos[team]);
 
     giveItems(pl, team);
 
@@ -481,6 +581,7 @@ events.playerRespawn.on(async e => {
 });
 
 events.playerLeft.on(e => {
+    console.log("events.playerLeft");
     if (!isGameRunning) return;
     const pl = e.player;
     const plName = pl.getNameTag();
@@ -490,6 +591,7 @@ events.playerLeft.on(e => {
 });
 
 events.playerJoin.on(async e => {
+    console.log("events.playerJoin");
     const pl = e.player;
     while (!pl.isPlayerInitialized()) {
         await new Promise(resolve => setTimeout(resolve, 1000)); // Tick delay to avoid server load
@@ -497,6 +599,9 @@ events.playerJoin.on(async e => {
     if (!isGameRunning) {
         pl.teleport(Vec3.create(731, 89, 288), DimensionId.Overworld);
         pl.runCommand("clear");
+        pl.setGameType(GameType.Adventure);
+        pl.addEffect(MobEffectInstance.create(MobEffectIds.InstantHealth, 1, 15, false, false, false));
+        pl.addEffect(MobEffectInstance.create(MobEffectIds.Saturation, 5*60*20, 255, false, false, false));
     } else {
         pl.runCommand("clear @s");
 
@@ -514,6 +619,32 @@ events.playerJoin.on(async e => {
     }
 });
 
+events.entityDie.on(e => {
+    if (!isGameRunning) return;
+    if (e.entity.getIdentifier() !== "minecraft:player") return;
+    if (!e.damageSource.getDamagingEntity()?.isPlayer()) return;
+    const attacker = e.damageSource.getDamagingEntity() as Player;
+    const victim = e.entity as Player;
+    const attackerStats = playerStats.get(attacker.getNameTag()) || { kills: 0, deaths: 0, flags: 0 };
+    const victimStats = playerStats.get(victim.getNameTag()) || { kills: 0, deaths: 0, flags: 0 };
+    attackerStats.kills++; victimStats.deaths++;
+    playerStats.set(attacker.getNameTag(), attackerStats);
+    playerStats.set(victim.getNameTag(), victimStats);
+});
+
+events.playerAttack.on(e => {
+    if (!isGameRunning) return CANCEL;
+    if (e.victim.getIdentifier() !== "minecraft:player") return;
+    const pl = e.player;
+    const victim = e.victim;
+    const plName = pl.getNameTag();
+    const plTeam = teams.get(plName);
+    const victimTeam = teams.get(victim.getNameTag());
+    if (plTeam === undefined || victimTeam === undefined) return;
+
+    if (plTeam === victimTeam) return CANCEL;
+});
+
 events.playerDimensionChange.on(() => {
     return CANCEL;
 });
@@ -525,7 +656,8 @@ export function getConstant(constant: Constants) {
         case Constants.isGameRunning:
             return (isGameRunning);
         case Constants.bannerPos:
-            return (bannerPos);
+            return [[bannerPos[0].x, bannerPos[0].y, bannerPos[0].z],
+                    [bannerPos[1].x, bannerPos[1].y, bannerPos[1].z]];
         case Constants.flagHolder:
             return (flagHolder);
         case Constants.flagsStatus:
