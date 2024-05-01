@@ -45,7 +45,7 @@ export function startGame() {
     let teamCounter = 0;
     for (const pl of bedrockServer.level.getPlayers()) {
         teams.set(pl.getNameTag(), teamCounter);
-        leaders[teamCounter] = pl.getNameTag();
+        if (leaders[teamCounter].length === 0) leaders[teamCounter] = pl.getNameTag();
         pl.teleport(teamSpawnPos[teamCounter], DimensionId.Overworld);
 
         teamCounter === 1 ? teamCounter = 0 : teamCounter++;
@@ -70,13 +70,99 @@ export function startGameLeaders(leader1: string, leader2: string) {
         return;
     }
 
-    let remainingPls: Player[] = [...bedrockServer.level.getPlayers()];
-    const teamPls: [Player[], Player[]] = [[], []];
-    async function choosePlayerForm(pl: Player) {
-        let redPlsStr = "§cRed: §r";
-        let bluePlsStr = "§bBlue: §r";
+    let remainingPls: Player[] = [];
+    const teamPls: [string[], string[]] = [[], []];
+    async function choosePlayerForm(leaderN: number) {
+        const leader = leaderN === 0 ? leaderRed! : leaderBlue!;
+        const teamPlsStr = ["§cRed: §r", "§bBlue: §r"];
+        const plsDropdown: string[] = [];
+        for (let i=0; i<teamPls.length; i++) {
+            for (const pl of teamPls[i]) {
+                teamPlsStr[i] += pl + ", ";
+            }
+            teamPlsStr[i] = teamPlsStr[i].substring(0, teamPlsStr[i].length - 2);
+        }
+        remainingPls.forEach(pl => {
+            plsDropdown.push(pl.getNameTag());
+        });
+        if (plsDropdown.length === 0) {
+            bedrockServer.executeCommand("tellraw @a " + rawtext("It appears there aren't anymore players to add to dropdown!", LogInfo.error));
+            return;
+        }
 
+        const ni = leader.getNetworkIdentifier();
+        const form = await Form.sendTo(ni, {
+            type: "custom_form",
+            title: "Choose 1 member for your team",
+            content: [
+                {
+                    "type": "label",
+                    "text": `Choose a member to add to your team!\nYour team: ${teamRawtext[leaderN]}\n${teamPlsStr[0]}\n${teamPlsStr[1]}`
+                },
+                {
+                   "type": "dropdown",
+                   "text": "Choose a player",
+                   "options": plsDropdown,
+                   "default": 0
+                }
+            ]
+        });
+        if (form !== null) {
+            const plName = plsDropdown[form[1]];
+            teamPls[leaderN].push(plName);
+            bedrockServer.executeCommand("tellraw @a " + rawtext(`§7§l> §r${plName} §7was added to ${teamRawtext[leaderN]}§7!`));
+            bedrockServer.executeCommand("playsound random.pop @a");
 
+            resetPlsList();
+            if (remainingPls.length === 0) {
+                playersChosen();
+                return;
+            }
+            leader.sendActionbar("§7Waiting for other team leader's choice...");
+            leaderN === 0 ? choosePlayerForm(1) : choosePlayerForm(0);
+        } else {
+            choosePlayerForm(leaderN);
+        }
+    }
+
+    function resetPlsList() {
+        remainingPls = [];
+        bedrockServer.level.getPlayers().forEach(pl => {
+            const plName = pl.getNameTag();
+            if (teamPls[0].includes(plName) || teamPls[0].includes(plName)) return;
+            if (plName === leader1 || plName === leader2) return;
+            remainingPls.push(pl);
+        });
+    }
+
+    resetPlsList();
+    choosePlayerForm(0);
+
+    function playersChosen() {
+        bedrockServer.executeCommand("tellraw @a " + rawtext("§aAll players were selected into a team! Starting step 2"));
+
+        for (const pl of bedrockServer.level.getPlayers()) {
+            const plName = pl.getNameTag();
+            if (leader1 === plName) {
+                teams.set(plName, 0);
+                pl.teleport(teamSpawnPos[0], DimensionId.Overworld);
+            } else if (leader2 === plName) {
+                teams.set(plName, 1);
+                pl.teleport(teamSpawnPos[1], DimensionId.Overworld);
+            } else if (teamPls[0].includes(plName)) {
+                teams.set(plName, 0);
+                pl.teleport(teamSpawnPos[0], DimensionId.Overworld);
+            } else if (teamPls[1].includes(plName)) {
+                teams.set(plName, 1);
+                pl.teleport(teamSpawnPos[1], DimensionId.Overworld);
+            } else {
+                const randTeam = Math.floor(Math.random()*2);
+                teams.set(plName, randTeam);
+                pl.teleport(teamSpawnPos[randTeam], DimensionId.Overworld);
+            }
+        }
+
+        chooseFlagPos(leader1, leader2);
     }
 }
 
@@ -281,8 +367,9 @@ function setup() {
         const team = teams.get(pl.getNameTag())!;
 
         const items = [];
-        for (const itemName of ["stone_sword", "bow", "stone_pickaxe", "stone_axe", "stone_shovel", "oak_log", "arrow"]) {
+        for (const itemName of ["stone_sword", "bow", "stone_pickaxe", "stone_axe", "stone_shovel", "bread", "oak_log", "arrow"]) {
             if (itemName === "oak_log") items.push(createCItemStack({ item: itemName, amount: 64 }))
+                else if (itemName === "bread") items.push(createCItemStack({ item: itemName, amount: 16 }))
                 else if (itemName === "arrow") items.push(createCItemStack({ item: itemName, amount: 32 }))
                 else items.push(createCItemStack({ item: itemName }));
         }
@@ -311,7 +398,7 @@ function setup() {
         playerStats.set(pl.getNameTag(), { kills: 0, deaths: 0, flags: 0 });
         pl.teleport(teamSpawnPos[team]);
         pl.sendTitle("§9Capture the Flag", `${teamRawtext[team]} §7team`);
-        pl.playSound("mob.enderdragon.growl", undefined, 0.5);
+        pl.playSound("mob.enderdragon.growl", pl.getPosition(), 0.2);
         pl.setGameType(GameType.Survival);
     }
 
@@ -345,9 +432,10 @@ function giveItems(pl: Player, team: number) {
         item.destruct();
     }
 
-    for (const itemName of ["stone_sword", "bow", "stone_pickaxe", "stone_axe", "stone_shovel", "oak_log", "arrow"]) {
+    for (const itemName of ["stone_sword", "bow", "stone_pickaxe", "stone_axe", "stone_shovel", "bread", "oak_log", "arrow"]) {
         let item: ItemStack;
         if (itemName === "oak_log") item = (createCItemStack({ item: itemName, amount: 64 }))
+            else if (itemName === "bread") item = (createCItemStack({ item: itemName, amount: 16 }))
             else if (itemName === "arrow") item = (createCItemStack({ item: itemName, amount: 32 }))
             else item = (createCItemStack({ item: itemName }));
         pl.addItem(item);
@@ -414,7 +502,7 @@ function scoreboardUpd() {
 
 function end() {
     // TESTS
-    if (flagCount[0] < 3 || flagCount[1] < 3) return;
+    if (flagCount[0] < 3 && flagCount[1] < 3) return;
 
 
     const teamW = flagCount[0]===3 ? 0 : 1;
@@ -662,6 +750,8 @@ export function getConstant(constant: Constants) {
             return (flagHolder);
         case Constants.flagsStatus:
             return (flagsStatus);
+        case Constants.flagCount:
+            return (flagCount);
         case Constants.teams:
             return (teams);
         default:

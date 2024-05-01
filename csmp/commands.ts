@@ -12,6 +12,7 @@ export enum Constants {
     teams,
     flagsStatus,
     flagHolder,
+    flagCount,
     bannerPos
 }
 
