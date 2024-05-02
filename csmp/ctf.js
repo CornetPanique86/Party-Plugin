@@ -462,7 +462,7 @@ function scoreboardUpd() {
 }
 function end() {
     // TESTS
-    if (flagCount[0] < 3 || flagCount[1] < 3)
+    if (flagCount[0] < 3 && flagCount[1] < 3)
         return;
     const teamW = flagCount[0] === 3 ? 0 : 1;
     launcher_1.bedrockServer.level.getPlayers().forEach(pl => {
