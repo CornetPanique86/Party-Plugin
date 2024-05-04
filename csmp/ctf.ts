@@ -544,8 +544,12 @@ events.levelTick.on(e => {
         return;
     }
 
-    if (ticks === 20) {
+    if (ticks % 20 === 0) {
         bedrockServer.executeCommand("execute at @a run fill ~+10 68 ~-5 ~-10 71 ~+5 air replace border_block");
+    }
+    if (ticks === 0) {
+        bedrockServer.executeCommand("kill @e[type=item]");
+        bedrockServer.executeCommand("title @a actionbar §7Cleared all items (clear lag)");
     }
 
     level.getPlayers().forEach(pl => {
@@ -554,7 +558,7 @@ events.levelTick.on(e => {
         if (!teams.has(plName)) return;
         const team = teams.get(plName)!;
 
-        if (ticks === 20) { // BUILD LIMIT
+        if (ticks % 20 === 0) { // BUILD LIMIT
             if (pos.y > 130 || pos.y < 50) {
                 pl.hurt(ActorDamageCause.Override, 4, false, false);
                 pl.sendActionbar("§cYou are outside map bounds!");
@@ -576,7 +580,7 @@ events.levelTick.on(e => {
         }
     });
 
-    ticks === 20 ? ticks = 0 : ticks++;
+    ticks === 6000 ? ticks = 0 : ticks++; // every 5 minutes
 });
 
 events.blockDestroy.on(e => {
