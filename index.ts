@@ -63,11 +63,14 @@ if (firstTime.data === undefined) {
     firstTime.init({}); // initialize
 }
 
-events.playerJoin.on(e => {
+events.playerJoin.on(async e => {
     const pl = e.player;
     const plName = pl.getNameTag();
     if (!firstTime.data[plName]) return; // Already joined
 
+    while (!pl.isPlayerInitialized()) {
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Tick delay to avoid server load
+    }
     nda(pl, plName);
 });
 

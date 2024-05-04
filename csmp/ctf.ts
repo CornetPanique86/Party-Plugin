@@ -8,7 +8,7 @@ import { BlockPlaceEvent } from "bdsx/event_impl/blockevent";
 import { CANCEL } from "bdsx/common";
 import { BlockPos, Vec3 } from "bdsx/bds/blockpos";
 import { Block } from "bdsx/bds/block";
-import { DimensionId } from "bdsx/bds/actor";
+import { ActorDamageCause, ActorDamageSource, DimensionId } from "bdsx/bds/actor";
 import { ItemUseEvent } from "bdsx/event_impl/entityevent";
 import { Form } from "bdsx/bds/form";
 import { ItemStack } from "bdsx/bds/inventory";
@@ -20,6 +20,7 @@ const fs = require('fs');
 const path = require('path');
 
 export let isGameRunning = false;
+export let isPreGameRunning = false;
 
 // ====
 // DATA
@@ -41,6 +42,7 @@ const teamSpawnPos = [Vec3.create(669, 91, 344), Vec3.create(584, 71, 239)];
 
 export function startGame() {
     const leaders = ["", ""];
+    isPreGameRunning = true;
 
     let teamCounter = 0;
     for (const pl of bedrockServer.level.getPlayers()) {
@@ -69,6 +71,7 @@ export function startGameLeaders(leader1: string, leader2: string) {
         bedrockServer.executeCommand("tellraw @a " + rawtext("Leader undefined", LogInfo.error));
         return;
     }
+    isPreGameRunning = true;
 
     let remainingPls: Player[] = [];
     const teamPls: [string[], string[]] = [[], []];
@@ -87,6 +90,7 @@ export function startGameLeaders(leader1: string, leader2: string) {
         });
         if (plsDropdown.length === 0) {
             bedrockServer.executeCommand("tellraw @a " + rawtext("It appears there aren't anymore players to add to dropdown!", LogInfo.error));
+            isPreGameRunning = false;
             return;
         }
 
@@ -108,6 +112,7 @@ export function startGameLeaders(leader1: string, leader2: string) {
             ]
         });
         if (form !== null) {
+            bedrockServer.executeCommand("tellraw @a " + rawtext("leaderN: " + leaderN));
             const plName = plsDropdown[form[1]];
             teamPls[leaderN].push(plName);
             bedrockServer.executeCommand("tellraw @a " + rawtext(`§7§l> §r${plName} §7was added to ${teamRawtext[leaderN]}§7!`));
@@ -129,7 +134,7 @@ export function startGameLeaders(leader1: string, leader2: string) {
         remainingPls = [];
         bedrockServer.level.getPlayers().forEach(pl => {
             const plName = pl.getNameTag();
-            if (teamPls[0].includes(plName) || teamPls[0].includes(plName)) return;
+            if (teamPls[0].includes(plName) || teamPls[1].includes(plName)) return;
             if (plName === leader1 || plName === leader2) return;
             remainingPls.push(pl);
         });
@@ -469,8 +474,8 @@ function flagCaptured(pl: Player, teamStolen: number) {
 }
 
 function flagDropped(pl: Player) {
+    if (!teams.has(pl.getNameTag())) return;
     const team = teams.get(pl.getNameTag());
-    if (!team) return;
     const teamDropped = team === 0 ? 1 : 0;
 
     if (pl.isPlayerInitialized()) pl.runCommand("clear @s " + (teamDropped === 0 ? "un:red_banner_helmet" : "un:blue_banner_helmet"));
@@ -549,9 +554,11 @@ events.levelTick.on(e => {
         if (!teams.has(plName)) return;
         const team = teams.get(plName)!;
 
-        if (pos.y > 130 || pos.y < 50) { // BUILD LIMIT
-            pl.teleport(teamSpawnPos[team]);
-            pl.sendMessage("§cYou were teleported for reaching build limit!");
+        if (ticks === 20) { // BUILD LIMIT
+            if (pos.y > 130 || pos.y < 50) {
+                pl.hurt(ActorDamageCause.Override, 4, false, false);
+                pl.sendActionbar("§cYou are outside map bounds!");
+            }
         } else if (flagHolder[0] === plName) { // Red player
             if ((pos.x >= (bannerPos[0].x-1) && pos.x <= (bannerPos[0].x+1.5))
              && (pos.y >= (bannerPos[0].y) && pos.y <= (bannerPos[0].y+2))
@@ -576,7 +583,6 @@ events.blockDestroy.on(e => {
     if (!isGameRunning) return;
     const bl = e.blockSource.getBlock(e.blockPos).getName();
     const pl = e.player;
-    // console.log(pl);
     // console.log(pl.getNameTag());
     if (e.blockPos.y <= 50 || e.blockPos.y >= 130) {
         e.player.sendMessage("§cBlock is outside of map's limits!");
@@ -590,7 +596,7 @@ events.blockDestroy.on(e => {
         if ((e.blockPos.x === bannerPos[teamStolen].x) && (e.blockPos.y === bannerPos[teamStolen].y) && (e.blockPos.z === bannerPos[teamStolen].z)) {
             // BANNER TAKEN
             const team = teams.get(pl.getNameTag());
-            if (!team) {
+            if (team === undefined) {
                 pl.sendMessage("Warning there was a problem you don't have a team pls contact admins");
                 return CANCEL};
             if (team === teamStolen) {
@@ -732,7 +738,11 @@ events.playerAttack.on(e => {
 
     if (plTeam === victimTeam) return CANCEL;
 });
-
+/*
+events.entityHurt.on(e => {
+    if (!isGameRunning) return CANCEL;
+});
+*/
 events.playerDimensionChange.on(() => {
     return CANCEL;
 });

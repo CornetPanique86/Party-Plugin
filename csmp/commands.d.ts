@@ -3,5 +3,6 @@ export declare enum Constants {
     teams = 1,
     flagsStatus = 2,
     flagHolder = 3,
-    bannerPos = 4
+    flagCount = 4,
+    bannerPos = 5
 }
