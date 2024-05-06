@@ -27,9 +27,6 @@ const gameBounds = [{ x: -2000, y: -15, z: -2000 }, { x: 2000, y: 320, z: 2000 }
 
 const specIntervalObj = {
     init: function() {
-        console.log("called specIntervalObj.init()");
-        console.log("tpSpot: "+ tpSpot.x, tpSpot.y, tpSpot.z);
-
         if (gameBounds[0].x > gameBounds[1].x || gameBounds[0].y > gameBounds[1].y || gameBounds[0].z > gameBounds[1].z) {
             isGameRunning.isSpectateInitialized = false;
             console.log("Incorrect game bounds!");
@@ -59,7 +56,7 @@ const specIntervalObj = {
             }
             for (const player2 of players) {
                 if (player2.getNameTag() === specPl.getNameTag()) continue;
-                if (!(player2.hasTag("bedwars") || player2.hasTag("hikabrain"))) continue;
+                if (!(player2.hasTag("bedwars") || player2.hasTag("hikabrain") || player2.hasTag("hidenseek"))) continue;
                 if (specPl.distanceTo(player2.getPosition()) < 8) {
                     specPl.teleport(tpSpot);
                     specPl.getAbilities().setAbility(AbilitiesIndex.Flying, true);
@@ -128,6 +125,7 @@ export function stopGame() {
     bedrockServer.executeCommand("effect @a clear");
     bedrockServer.executeCommand("tag @a remove bedwars");
     bedrockServer.executeCommand("tag @a remove hikabrain");
+    bedrockServer.executeCommand("tag @a remove hidenseek");
 }
 
 export async function startGame(game: Games, players: Player[], sec: number, title: string = "§aStarting in..."): Promise<string[] | null> {
@@ -173,10 +171,22 @@ export async function startGame(game: Games, players: Player[], sec: number, tit
                         z: -222
                     };
                     break;
+                case Games.hidenseek:
+                    tpSpot = Vec3.create(0, 150, 0);
+                    gameBounds[0] = {
+                        x: -80,
+                        y: 90,
+                        z: -81
+                    };
+                    gameBounds[1] = {
+                        x: 80,
+                        y: 200,
+                        z: 80
+                    };
+                    break;
                 default:
                     tpSpot = lobbyCoords;
             }
-            console.log("calling specIntervalObj.init()");
             specIntervalObj.init();
             return participants;
         }

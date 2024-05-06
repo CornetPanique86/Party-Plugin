@@ -8,11 +8,14 @@ import { proc } from "bdsx/bds/symbols";
 import { MemoryUnlocker } from "bdsx/unlocker";
 import { procHacker } from "bdsx/prochacker";
 import { spectateStop } from "./utils";
+import { CANCEL } from "bdsx/common";
+import { ActorDamageCause } from "bdsx/bds/actor";
 
 export enum Games {
     none = "None",
     bedwars = "Bedwars",
-    hikabrain = "Hikabrain"
+    hikabrain = "Hikabrain",
+    hidenseek = "Hide 'n' Seek"
 }
 type IsGameRunning = {
     game: Games;
@@ -44,7 +47,7 @@ function unlock_limit_of_fill(): void {
                 0x0f, 0x8e, 0xb2, 0x01, 0x00, 0x00,
                 0x41, 0x8b, 0xd7,
                 0x48, 0x8d, 0x4d, 0xf0,
-                0xe8, 0xe0, 0x3c, 0xfb, 0xFF,
+                0xe8, 0x10, 0x33, 0xfb, 0xFF,
                 0x90,
                 0xba, 0x00, 0x80, 0x00, 0x00,
             ],
@@ -63,12 +66,21 @@ unlock_limit_of_fill();
 
 console.log(logPrefix + "UG plugin loaded");
 
+events.entityHurt.on(e => {
+    if (!e.entity.isPlayer()) return;
+    const pl = e.entity;
+    if (pl.hasTag("bedwars") || pl.hasTag("hikabrain")) return;
+    if (e.damageSource.cause === ActorDamageCause.Fall) return CANCEL;
+});
+
 events.playerJoin.on(e => {
     const pl = e.player;
     if (!isGameRunning.isRunning) { // If game is not running
-        if (pl.hasTag("bedwars") || pl.hasTag("hikabrain")) {
+        if (pl.hasTag("bedwars") || pl.hasTag("hikabrain") || pl.hasTag("hidenseek")) {
             pl.removeTag("bedwars");
             pl.removeTag("hikabrain");
+            pl.removeTag("hidenseek");
+            pl.runCommand(`event entity @s ug:show_name`);
         }
         if (pl.hasTag("spectator")) {
             spectateStop(pl);

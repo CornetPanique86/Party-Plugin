@@ -742,11 +742,15 @@ events.playerAttack.on(e => {
 
     if (plTeam === victimTeam) return CANCEL;
 });
-/*
-events.entityHurt.on(e => {
+
+events.entityHurt.on(() => {
     if (!isGameRunning) return CANCEL;
 });
-*/
+
+events.chestOpen.on(() => {
+    if (!isGameRunning) return CANCEL;
+});
+
 events.playerDimensionChange.on(() => {
     return CANCEL;
 });

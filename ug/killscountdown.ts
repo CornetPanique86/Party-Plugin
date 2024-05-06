@@ -145,4 +145,4 @@ function stopListeners() {
 }
 events.serverClose.on(() => {
     gameIntervalObj.stop();
-})
+});

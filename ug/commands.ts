@@ -13,6 +13,7 @@ import { isGameRunning } from ".";
 import { CommandResultType } from "bdsx/commandresult";
 import { hikabrainstart } from "./hikabrain";
 import { startKillsCountdown } from "./killscountdown";
+import { hidenseekstart } from "./hidenseek";
 
 // tntrun: 14 5 516
 // koth: -121 4 21
@@ -52,6 +53,25 @@ command.register("hikabrainstart", "Hehehehebrain", CommandPermissionLevel.Opera
     .overload(
         (param, origin, output) => {
             hikabrainstart(param, origin, output);
+        },
+        {
+            option: command.enum("option.stop", "stop")
+        },
+);
+
+// Hide 'n' seek
+command.register("hidenseek", "Heheheheseek", CommandPermissionLevel.Operator)
+    .overload(
+        (param, origin, output) => {
+            hidenseekstart(param, origin, output);
+        },
+        {
+            option: command.enum("option.start", "start"),
+        },
+    )
+    .overload(
+        (param, origin, output) => {
+            hidenseekstart(param, origin, output);
         },
         {
             option: command.enum("option.stop", "stop")
@@ -135,81 +155,3 @@ command.register("spectate", "Spectate the current game", CommandPermissionLevel
     },
     { },
 );
-
-// test
-command.register("testp", "testing", CommandPermissionLevel.Operator)
-    .overload(
-        (param, origin, output) => {
-            const actor = origin.getEntity();
-            if (!actor?.isPlayer()) return;
-            actor.setSize(param.width, param.height);
-        },
-        {
-            option: command.enum("option.size", "size"),
-            width: int32_t,
-            height: int32_t
-        }
-    )
-    .overload(
-        (param, origin, output) => {
-            const actor = origin.getEntity();
-            if (!actor?.isPlayer()) return;
-            actor.setScale(param.scale);
-        },
-        {
-            option: command.enum("option.scale", "scale"),
-            scale: int32_t
-        }
-    );
-
-command.register("tpvec", "tp w vec3", CommandPermissionLevel.Operator).overload(
-    (param, origin, output) => {
-        const actor = origin.getEntity();
-        if (!actor?.isPlayer()) return;
-        actor.teleport(Vec3.create(param.x.value, param.y.value, param.z.value));
-        output.success(
-            `relative float example> origin=${origin.getName()}\n` +
-                `${param.x.value} ${param.x.is_relative}\n` +
-                `${param.y.value} ${param.y.is_relative}\n` +
-                `${param.z.value} ${param.z.is_relative}\n`,
-        );
-    },
-    {
-        x: RelativeFloat,
-        y: RelativeFloat,
-        z: RelativeFloat,
-    }
-);
-
-function test(param: { action: string, value: number }, origin: CommandOrigin, output: CommandOutput) {
-    const actor = origin.getEntity();
-    if (!actor?.isPlayer()) return;
-
-    // const result = actor.runCommand("clear");
-    // console.log(result);
-    // console.log(result.result);
-    // bedrockServer.executeCommand("give " + actor.getNameTag() + " apple");
-    // const result1 = actor.runCommand("clear", CommandResultType.Mute, CommandPermissionLevel.Operator);
-    // console.log(result1);
-    // console.log(result1.result);
-
-    if (!actor.hasTag("abilityTrue")) {
-        actor.addTag("abilityTrue");
-        const abilities = actor.getAbilities();
-        abilities.setAbility(AbilitiesIndex.MayFly, true);
-        abilities.setAbility(AbilitiesIndex.Flying, true);
-        abilities.setAbility(AbilitiesIndex.NoClip, true);
-        abilities.setAbility(AbilitiesIndex.Invulnerable, true);
-        abilities.setAbility(AbilitiesIndex.AttackPlayers, false);
-        actor.syncAbilities();
-    } else {
-        actor.removeTag("abilityTrue");
-        const abilities = actor.getAbilities();
-        abilities.setAbility(AbilitiesIndex.Flying, false);
-        abilities.setAbility(AbilitiesIndex.MayFly, false);
-        abilities.setAbility(AbilitiesIndex.NoClip, false);
-        abilities.setAbility(AbilitiesIndex.Invulnerable, false);
-        abilities.setAbility(AbilitiesIndex.AttackPlayers, true);
-        actor.syncAbilities();
-    }
-}
