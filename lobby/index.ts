@@ -206,7 +206,6 @@ events.levelTick.on(e => {
                 if (plPkTime.get(pl)![1] === 3) { // If made the 3 loops
                     pl.removeTag("parkour");
                     pl.removeTag("parkourElytra");
-                    if (!plPkTime.has(pl)) return;
                     pl.sendTitle("§6Parkour ended", "§7Time: §f" + millisToMinutesAndSeconds(time));
                     pl.playSound("random.totem");
                     storePkTime(pl.getNameTag(), time);

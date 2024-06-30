@@ -3,7 +3,8 @@ import { Vec3 } from "bdsx/bds/blockpos";
 export declare enum Games {
     none = "None",
     bedwars = "Bedwars",
-    hikabrain = "Hikabrain"
+    hikabrain = "Hikabrain",
+    hidenseek = "Hide 'n' Seek"
 }
 type IsGameRunning = {
     game: Games;
