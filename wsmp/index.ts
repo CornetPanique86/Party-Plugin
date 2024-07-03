@@ -18,3 +18,13 @@ events.playerAttack.on(e => {
     if (e.victim.getIdentifier() !== "minecraft:player") return;
     if (e.player.getTags().length === 0) return CANCEL;
 });
+
+events.itemUse.on(e => {
+    const item = e.itemStack;
+    const pl = e.player;
+    if (item.getCustomName() === "§r§iSpawn boat") {
+        pl.runCommand("boat summon");
+    } else if (item.getCustomName() === "§r§6Checkpoint") {
+        pl.runCommand("boat checkpoint");
+    }
+});

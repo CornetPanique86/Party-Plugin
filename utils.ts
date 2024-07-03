@@ -1,5 +1,7 @@
 import { EnchantUtils, EnchantmentNames } from "bdsx/bds/enchants";
 import { ItemStack } from "bdsx/bds/inventory";
+import { command } from "bdsx/command";
+import { CxxString, int32_t } from "bdsx/nativetype";
 
 type ItemDesc = {
     item: string,
@@ -26,3 +28,14 @@ export function createCItemStack(item: ItemDesc) {
 
     return i;
 }
+
+command.register("transferserver", "Transfer servers").overload(
+    (params, origin, output) => {
+        const actor = origin.getEntity();
+        if (actor?.isPlayer()) actor.transferServer(params.address, params.port);
+    },
+    {
+        address: CxxString,
+        port: int32_t,
+    },
+);
