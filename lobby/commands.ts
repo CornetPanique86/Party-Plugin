@@ -31,6 +31,17 @@ command.register("spawn", "Teleport to spawn", CommandPermissionLevel.Normal).ov
     { },
 );
 
+// /sendtominigames
+command.register("sendtominigames", "Transfer to minigames server", CommandPermissionLevel.Normal).overload(
+    (param, origin, output) => {
+        const actor = origin.getEntity();
+        if (!actor?.isPlayer()) return;
+        actor.addTag("portaled");
+        actor.runCommand("transferserver event.xxlsteve.net 19142");
+    },
+    { },
+);
+
 // /parkour
 command.register("parkour", "Parkour commands", CommandPermissionLevel.Normal)
     .overload(
