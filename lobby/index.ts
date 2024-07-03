@@ -203,6 +203,7 @@ events.levelTick.on(e => {
             if (floorPos.x === startPkPos[0] && (floorPos.y - 1) === startPkPos[1] && floorPos.z  === startPkPos[2]) { // Restart parkour
                 checkpoint = 0;
                 time = 0;
+                pl.runCommand("clear @s elytra");
             } else if (floorPos.x === endPkPos[0] && (floorPos.y - 1) === endPkPos[1] && floorPos.z  === endPkPos[2]) { // End parkour
                 if (plPkTime.get(pl)![1] === 3) { // If made the 3 loops
                     pl.removeTag("parkour");
