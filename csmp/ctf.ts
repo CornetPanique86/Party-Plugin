@@ -112,7 +112,6 @@ export function startGameLeaders(leader1: string, leader2: string) {
             ]
         });
         if (form !== null) {
-            bedrockServer.executeCommand("tellraw @a " + rawtext("leaderN: " + leaderN));
             const plName = plsDropdown[form[1]];
             teamPls[leaderN].push(plName);
             bedrockServer.executeCommand("tellraw @a " + rawtext(`§7§l> §r${plName} §7was added to ${teamRawtext[leaderN]}§7!`));
@@ -308,6 +307,8 @@ function checkAirSpace(from: BlockPos, to: BlockPos) {
 }
 
 function setup() {
+    bedrockServer.executeCommand("gamerule sendcommandfeedback false");
+    bedrockServer.executeCommand("gamerule commandblockoutput false");
     bedrockServer.executeCommand("clear @a");
     bedrockServer.executeCommand("effect clear @a");
     bedrockServer.gameRules.setRule(GameRuleId.DoImmediateRespawn, true);
