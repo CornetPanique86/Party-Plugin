@@ -61,7 +61,7 @@ export async function bedwarsstart(param: { option: string }, origin: CommandOri
         return;
     }
     try {
-        const participants = await startGame(Games.bedwars, bedrockServer.level.getPlayers(), 10);
+        const participants = await startGame(Games.bedwars, bedrockServer.level.getPlayers(), 15);
         if (participants !== null) setup(participants);
     } catch (err) {
         bedrockServer.executeCommand(`tellraw @a ${rawtext("Error while starting bedwars", LogInfo.error)}`);
