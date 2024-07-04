@@ -44,6 +44,7 @@ const playerStats = new Map<string, { kills: number, tempKills: number, goals: n
 const points = [0, 0];
 const teamNames = ["§cRed", "§bBlue"];
 const teamPos = ["-258 15 -237", "-222 15 -237"];
+let scoringPointState = false; // Avoid 2 goals for 1 bed break
 
 function setup(pls: string[]) {
     console.log("setup() participants:\n" + pls + "\n");
@@ -73,6 +74,8 @@ function setup(pls: string[]) {
 
 function addPoint(team: number, scorer: Player) {
     if (team < 0 || team > 1) return;
+    if (scoringPointState) return;
+    scoringPointState = true;
     const scorerName = scorer.getNameTag();
     if (playerStats.has(scorerName)) playerStats.get(scorerName)!.goals++;
     points[team]++;
@@ -105,6 +108,7 @@ function roundReset(team?: number, scorer?: string) {
     const title = (team !== undefined) && (scorer !== undefined) ? teamNames[team].substring(0, 2) + scorer + " scored" : "§r";
     countdownActionbar(3, plsName, false, title)
         .then(() => {
+            scoringPointState = false;
             bedrockServer.executeCommand("fill -222 0 -230 -258 30 -244 air replace sandstone"); // clear map
             bedrockServer.executeCommand("clone -213 4 -149 -212 4 -149 -222 11 -237"); // BLUE BED
             bedrockServer.executeCommand("clone -215 4 -149 -216 4 -149 -259 11 -237"); // RED BED

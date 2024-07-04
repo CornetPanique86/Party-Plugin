@@ -5,11 +5,9 @@ import { LogInfo, rawtext } from "..";
 import { startGame, stopGame } from "./utils";
 import { Games, lobbyCoords } from ".";
 import { events } from "bdsx/event";
-import { PlayerAttackEvent, PlayerJoinEvent, PlayerLeftEvent, PlayerRespawnEvent } from "bdsx/event_impl/entityevent";
+import { PlayerJoinEvent, PlayerLeftEvent, PlayerRespawnEvent } from "bdsx/event_impl/entityevent";
 import { MobEffectIds, MobEffectInstance } from "bdsx/bds/effects";
-import { Player } from "bdsx/bds/player";
-import { ActorDamageCause } from "bdsx/bds/actor";
-import { CANCEL } from "bdsx/common";
+
 
 export async function hidenseekstart(param: { option: string }, origin: CommandOrigin, output: CommandOutput) {
     // /hidenseek stop
