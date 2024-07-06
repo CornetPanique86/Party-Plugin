@@ -95,7 +95,7 @@ function setup(pls: string[]) {
 
         // Put in team
         teams[teamCounter].pls.push(pl);
-        teamCounter === 5 ? teamCounter = 0 : teamCounter++;
+        teamCounter === 4 ? teamCounter = 0 : teamCounter++;
     });
 
     // TP Teams
